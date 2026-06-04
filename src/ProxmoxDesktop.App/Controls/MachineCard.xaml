@@ -22,7 +22,7 @@
                 Background="{x:Bind StatusBrush, Mode=OneWay}">
             <TextBlock Text="{x:Bind Machine.Status, Mode=OneWay}"
                        FontSize="10" Foreground="White"
-                       TextTransform="Uppercase" FontWeight="SemiBold"/>
+                       CharacterSpacing="75" FontWeight="SemiBold"/>
         </Border>
 
         <!-- Node name -->

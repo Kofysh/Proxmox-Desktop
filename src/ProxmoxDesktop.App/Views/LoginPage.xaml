@@ -17,6 +17,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Logo + titre -->
@@ -82,8 +83,7 @@
                  Margin="0,4,0,0"/>
 
         <!-- Bouton connexion -->
-        <Button Grid.Row="8"
-                Content="Se connecter"
+        <Button Grid.Row="9"
                 HorizontalAlignment="Stretch"
                 Style="{StaticResource AccentButtonStyle}"
                 Command="{x:Bind ViewModel.LoginCommand}"
