@@ -1,0 +1,180 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ProxmoxDesktop.Core</name>
+    </assembly>
+    <members>
+        <member name="T:ProxmoxDesktop.Core.Api.ApiClient">
+            <summary>
+            Client HTTP asynchrone pour l'API Proxmox VE.
+            Toutes les méthodes sont async/await — aucun .GetAwaiter().GetResult().
+            Utilise System.Text.Json (pas de Newtonsoft.Json).
+            Le mot de passe n'est jamais conservé après l'authentification.
+            </summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.#ctor(System.String,System.String,System.Boolean)">
+            <param name="server">IP ou hostname du serveur Proxmox (sans https://).</param>
+            <param name="port">Port de l'API PVE, généralement 8006.</param>
+            <param name="skipSsl">Si true, accepte les certificats self-signed sans erreur.</param>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.GetRealmsAsync(System.Threading.CancellationToken)">
+            <summary>
+            Récupère la liste des realms disponibles sur le serveur.
+            Appelé avant le login pour peupler le ComboBox de la LoginPage.
+            </summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.LoginAsync(System.String,System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Tente l'authentification username/password (+TOTP optionnel).
+            Le mot de passe n'est pas conservé après cet appel.
+            </summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.RenewTicketAsync(System.Threading.CancellationToken)">
+            <summary>Renouvelle le ticket d'auth existant (appel toutes les ~90 min).</summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.GetNodesAsync(System.Threading.CancellationToken)">
+            <summary>Retourne la liste des nœuds du cluster.</summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.GetAllMachinesAsync(System.Threading.CancellationToken)">
+            <summary>
+            Retourne toutes les VMs QEMU + containers LXC de tous les nœuds,
+            en parallèle (une requête par nœud pour chaque type).
+            </summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.PowerActionAsync(ProxmoxDesktop.Core.Api.Models.MachineData,System.String,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Exécute une action d'alimentation sur une VM/CT.
+            <paramref name="action"/> : start | shutdown | reboot | stop | reset | suspend.
+            <paramref name="hibernate"/> : true pour suspendre en mode hibernation (QEMU uniquement).
+            </summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.GetConsoleUrlAsync(ProxmoxDesktop.Core.Api.Models.MachineData,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Génère l'URL d'accès à une console NoVNC ou xTermJS.
+            <paramref name="consoleType"/> : "novnc" ou "xtermjs".
+            </summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.GetSpiceConfigAsync(ProxmoxDesktop.Core.Api.Models.MachineData,System.String,System.Threading.CancellationToken)">
+            <summary>Récupère la configuration SPICE pour une VM (QEMU uniquement).</summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Api.ApiClient.PostTicketAsync(System.Collections.Generic.Dictionary{System.String,System.String},System.Threading.CancellationToken)">
+            <summary>
+            POST sur /access/ticket (sans auth cookie — utilisé pour login et renew).
+            </summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Api.Internal.PveResponse`1">
+            <summary>Enveloppe générique des réponses PVE : { "data": T }</summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Api.Internal.PveListResponse`1">
+            <summary>Enveloppe quand data est un tableau.</summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Api.Internal.TicketResponse">
+            <summary>Réponse de /access/ticket</summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Api.Models.DataTicket">
+            <summary>
+            Ticket d'authentification PVE retourné par /access/ticket.
+            Seul le ticket et le CSRF sont conservés — le mot de passe n'est JAMAIS stocké ici.
+            </summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Api.Models.LoginResult">
+            <summary>
+            Résultat d'une tentative de connexion.
+            Utilise un discriminated-union léger via les propriétés booléennes.
+            </summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Api.Models.MachineData">
+            <summary>
+            Représente une VM QEMU ou un container LXC retourné par l'API PVE.
+            Déclaré en tant que record pour autoriser l'expression 'with' dans ApiClient.
+            </summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Vmid">
+            <summary>Identifiant unique de la VM/CT.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Name">
+            <summary>Nom de la VM/CT.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Status">
+            <summary>Statut courant : "running", "stopped", "suspended", etc.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Node">
+            <summary>Nom du nœud tel que retourné par l'API list (champ "node").</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Cpu">
+            <summary>CPU usage (0.0 – 1.0) retourné par l'API.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Mem">
+            <summary>RAM utilisée en octets.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.MaxMem">
+            <summary>RAM totale allouée en octets.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Lock">
+            <summary>
+            Verrou opérationnel PVE (ex: "suspended", "migrate", "backup", null si aucun).
+            Utilisé pour déterminer les actions disponibles (Start, Resume, etc.).
+            </summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Serial">
+            <summary>
+            Nombre de ports série configurés (QEMU uniquement).
+            Vaut 0 si la VM n'a pas de console série, 1 ou plus si elle en a une.
+            Utilisé pour activer l'accès xTermJS.
+            </summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.NodeName">
+            <summary>Nom du nœud hôte injecté par ApiClient.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.Type">
+            <summary>"qemu" ou "lxc" injecté par ApiClient.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.IsRunning">
+            <summary>True si la VM/CT est en cours d'exécution.</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.IsLxc">
+            <summary>True si c'est un container LXC (et non une VM QEMU).</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.CpuPercent">
+            <summary>CPU en pourcentage (0–100).</summary>
+        </member>
+        <member name="P:ProxmoxDesktop.Core.Api.Models.MachineData.MemPercent">
+            <summary>RAM utilisée en pourcentage (0–100).</summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Api.Models.PowerResult">
+            <summary>Résultat d'une action d'alimentation sur une VM/CT.</summary>
+        </member>
+        <member name="F:ProxmoxDesktop.Core.Api.Models.PowerResult.Ok">
+            <summary>Commande acceptée par Proxmox VE.</summary>
+        </member>
+        <member name="F:ProxmoxDesktop.Core.Api.Models.PowerResult.Forbidden">
+            <summary>Refusé : droits insuffisants (HTTP 403).</summary>
+        </member>
+        <member name="F:ProxmoxDesktop.Core.Api.Models.PowerResult.Error">
+            <summary>Erreur inattendue (timeout, nœud hors-ligne, etc.).</summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Config.ConfigurationService">
+            <summary>
+            Service de configuration persisté dans un fichier JSON local.
+            Remplace l'ancienne classe Configurations qui sauvegardait à chaque SetSetting().
+            Sauvegarde uniquement lors d'un appel explicite à Save().
+            Le mot de passe n'est JAMAIS stocké.
+            </summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Config.ConfigurationService.Get``1(System.String)">
+            <summary>Lit une valeur de configuration. Retourne la valeur par défaut si absente.</summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Config.ConfigurationService.Set``1(System.String,``0)">
+            <summary>Définit une valeur. La sauvegarde n'est effectuée qu'après Save().</summary>
+        </member>
+        <member name="M:ProxmoxDesktop.Core.Config.ConfigurationService.Save">
+            <summary>Persiste la configuration sur disque (appel explicite uniquement).</summary>
+        </member>
+        <member name="T:ProxmoxDesktop.Core.Console.SpiceLauncher">
+            <summary>
+            Lance une session SPICE via virt-viewer en générant un fichier .vv temporaire.
+            Logique identique à l'ancienne app WinForms, portée en async.
+            </summary>
+        </member>
+    </members>
+</doc>
