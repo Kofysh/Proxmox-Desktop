@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows10.0.22621.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>ProxmoxDesktop.App</RootNamespace>
+    <AssemblyName>ProxmoxDesktop.App</AssemblyName>
+    <ApplicationIcon>Assets/proxmox.ico</ApplicationIcon>
+    <UseWinUI>true</UseWinUI>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <WindowsAppSdkBootstrapAutoInitializeOptions_UnpackagedRuntime>true</WindowsAppSdkBootstrapAutoInitializeOptions_UnpackagedRuntime>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.*" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.*" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.*" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ProxmoxDesktop.Core\ProxmoxDesktop.Core.csproj" />
+  </ItemGroup>
+</Project>
