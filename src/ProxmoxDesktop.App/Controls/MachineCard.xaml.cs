@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using CommunityToolkit.Mvvm.Input;
+using ProxmoxDesktop.App.Helpers;
 using ProxmoxDesktop.App.ViewModels;
 using ProxmoxDesktop.Core.Api.Models;
 
@@ -43,7 +44,7 @@ public sealed partial class MachineCard : UserControl
     public bool CanResume   => Machine is { IsRunning: false } m && m.Lock == "suspended" && !m.IsLxc;
     public bool CanSuspend  => Machine?.IsRunning == true && Machine?.IsLxc == false;
     public bool CanReset    => Machine?.IsRunning == true && Machine?.IsLxc == false;
-    public bool CanOpenXterm => Machine is { } m && (m.IsLxc || m.Serial == 1);
+    public bool CanOpenXterm => Machine is { } m && (m.IsLxc || m.Serial >= 1);
 
     // -------------------------------------------------------------------------
     // Commands — délégués au MainViewModel via le DataContext

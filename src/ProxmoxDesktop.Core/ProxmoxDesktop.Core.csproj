@@ -8,6 +8,8 @@
     <AssemblyName>ProxmoxDesktop.Core</AssemblyName>
     <RootNamespace>ProxmoxDesktop.Core</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Supprime les warnings CS1591 (commentaires XML manquants) -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <!-- Aucune dépendance externe — System.Text.Json est inclus dans .NET 10 -->

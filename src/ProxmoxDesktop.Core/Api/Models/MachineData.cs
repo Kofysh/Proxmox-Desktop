@@ -8,9 +8,16 @@ namespace ProxmoxDesktop.Core.Api.Models;
 /// </summary>
 public sealed record MachineData
 {
+    /// <summary>Identifiant unique de la VM/CT.</summary>
     [JsonPropertyName("vmid")]   public int    Vmid   { get; init; }
+
+    /// <summary>Nom de la VM/CT.</summary>
     [JsonPropertyName("name")]   public string Name   { get; init; } = string.Empty;
+
+    /// <summary>Statut courant : "running", "stopped", "suspended", etc.</summary>
     [JsonPropertyName("status")] public string Status { get; init; } = string.Empty;
+
+    /// <summary>Nom du nœud tel que retourné par l'API list (champ "node").</summary>
     [JsonPropertyName("node")]   public string Node   { get; init; } = string.Empty;
 
     /// <summary>CPU usage (0.0 – 1.0) retourné par l'API.</summary>
@@ -22,14 +29,27 @@ public sealed record MachineData
     /// <summary>RAM totale allouée en octets.</summary>
     [JsonPropertyName("maxmem")] public long   MaxMem { get; init; }
 
+    /// <summary>
+    /// Verrou opérationnel PVE (ex: "suspended", "migrate", "backup", null si aucun).
+    /// Utilisé pour déterminer les actions disponibles (Start, Resume, etc.).
+    /// </summary>
+    [JsonPropertyName("lock")]   public string? Lock  { get; init; }
+
+    /// <summary>
+    /// Nombre de ports série configurés (QEMU uniquement).
+    /// Vaut 0 si la VM n'a pas de console série, 1 ou plus si elle en a une.
+    /// Utilisé pour activer l'accès xTermJS.
+    /// </summary>
+    [JsonPropertyName("serial")]  public int    Serial { get; init; }
+
     // -------------------------------------------------------------------------
     // Champs injectés après désérialisation (absents de la réponse list PVE)
     // -------------------------------------------------------------------------
 
-    /// <summary>Nom du nœud hôte (injecté par ApiClient).</summary>
+    /// <summary>Nom du nœud hôte injecté par ApiClient.</summary>
     public string NodeName { get; init; } = string.Empty;
 
-    /// <summary>"qemu" ou "lxc" (injecté par ApiClient).</summary>
+    /// <summary>"qemu" ou "lxc" injecté par ApiClient.</summary>
     public string Type { get; init; } = string.Empty;
 
     // -------------------------------------------------------------------------

@@ -1,10 +1,14 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using ProxmoxDesktop.App.Views;
 
 namespace ProxmoxDesktop.App.Views;
 
 public sealed partial class MainWindow : Window
 {
+    /// <summary>Frame racine de navigation, accessible par les pages enfants.</summary>
+    public Frame RootFrame => (Frame)Content;
+
     public MainWindow()
     {
         InitializeComponent();
