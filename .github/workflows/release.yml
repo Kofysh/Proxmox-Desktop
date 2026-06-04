@@ -1,0 +1,80 @@
+name: Build et publication MSIX
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Installation de .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restauration des dépendances
+        run: dotnet restore src/ProxmoxDesktop.App/ProxmoxDesktop.App.csproj
+
+      - name: Décodage du certificat de signature
+        run: |
+          $cert = [Convert]::FromBase64String("${{ secrets.CERTIFICATE_PFX_BASE64 }}")
+          [IO.File]::WriteAllBytes("${{ github.workspace }}\ProxmoxDesktop.pfx", $cert)
+        shell: pwsh
+
+      - name: Mise à jour de la version dans le manifest
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v') + ".0"
+          $manifest = "src/ProxmoxDesktop.App/Package.appxmanifest"
+          (Get-Content $manifest) -replace 'Version="[^"]+"', "Version=\"$version\"" | Set-Content $manifest
+        shell: pwsh
+
+      - name: Build MSIX
+        run: |
+          dotnet publish src/ProxmoxDesktop.App/ProxmoxDesktop.App.csproj `
+            -c Release `
+            -r win-x64 `
+            /p:AppxPackageSigningEnabled=true `
+            /p:PackageCertificateKeyFile="${{ github.workspace }}\ProxmoxDesktop.pfx" `
+            /p:PackageCertificatePassword="${{ secrets.CERTIFICATE_PASSWORD }}"
+        shell: pwsh
+
+      - name: Localisation du fichier MSIX
+        id: find_msix
+        run: |
+          $msix = Get-ChildItem -Recurse -Filter "*.msix" | Select-Object -First 1
+          echo "MSIX_PATH=$($msix.FullName)" >> $env:GITHUB_OUTPUT
+          echo "MSIX_NAME=$($msix.Name)" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Extraction du certificat public (.cer)
+        run: |
+          $pfx = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
+          $pfx.Import("${{ github.workspace }}\ProxmoxDesktop.pfx", "${{ secrets.CERTIFICATE_PASSWORD }}", "DefaultKeySet")
+          $cerBytes = $pfx.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+          [IO.File]::WriteAllBytes("${{ github.workspace }}\ProxmoxDesktop.cer", $cerBytes)
+        shell: pwsh
+
+      - name: Création de la release GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Proxmox Desktop ${{ github.ref_name }}"
+          body: |
+            ## Installation
+
+            1. Télécharger `ProxmoxDesktop.cer` et l'installer dans **Autorités de certification racines de confiance**
+            2. Télécharger et double-cliquer sur le `.msix`
+
+            > Le certificat n'est requis qu'une seule fois par machine.
+          files: |
+            ${{ steps.find_msix.outputs.MSIX_PATH }}
+            ${{ github.workspace }}\ProxmoxDesktop.cer
+          draft: false
+          prerelease: false
