@@ -15,7 +15,10 @@
     <AssemblyName>ProxmoxDesktop</AssemblyName>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <InformationalVersion>2.0.0</InformationalVersion>
-    <!-- Evite l'erreur NU1100 sur les runtimes manquants en mode restore -->
+    <!-- Mode unpackaged : pas de MSIX requis, exe direct -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- Bootstrap automatique du WinAppSDK au démarrage (remplace l'enregistrement COM du MSIX) -->
+    <WindowsAppSdkBootstrapInitializeMode>Auto</WindowsAppSdkBootstrapInitializeMode>
     <DisableImplicitNuGetFallbackFolder>false</DisableImplicitNuGetFallbackFolder>
     <RestoreLockedMode>false</RestoreLockedMode>
   </PropertyGroup>
