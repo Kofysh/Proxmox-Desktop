@@ -10,38 +10,38 @@ namespace ProxmoxDesktop.App.ViewModels;
 public partial class LoginViewModel : ObservableObject
 {
     // -------------------------------------------------------------------------
-    // State
+    // State — partial properties (AOT-compatible WinRT, MVVMTK0045)
     // -------------------------------------------------------------------------
 
     [ObservableProperty]
-    private string _server = string.Empty;
+    public partial string Server { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _port = "8006";
+    public partial string Port { get; set; } = "8006";
 
     [ObservableProperty]
-    private string _username = string.Empty;
+    public partial string Username { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _password = string.Empty;
+    public partial string Password { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string _otp = string.Empty;
+    public partial string Otp { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private bool _skipSsl;
+    public partial bool SkipSsl { get; set; }
 
     [ObservableProperty]
-    private bool _isBusy;
+    public partial bool IsBusy { get; set; }
 
     [ObservableProperty]
-    private bool _totpVisible;
+    public partial bool TotpVisible { get; set; }
 
     [ObservableProperty]
-    private string? _errorMessage;
+    public partial string? ErrorMessage { get; set; }
 
     [ObservableProperty]
-    private RealmData? _selectedRealm;
+    public partial RealmData? SelectedRealm { get; set; }
 
     public ObservableCollection<RealmData> Realms { get; } = [];
 
@@ -83,7 +83,7 @@ public partial class LoginViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Impossible de contacter le serveur : {ex.Message}";
+            ErrorMessage = $"Impossible de contacter le serveur : {ex.Message}";
             _api = null;
         }
         finally { IsBusy = false; }
@@ -122,7 +122,7 @@ public partial class LoginViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ErrorMessage = $"Erreur lors de la connexion : {ex.Message}";
+            ErrorMessage = $"Erreur lors de la connexion : {ex.Message}";
         }
         finally { IsBusy = false; }
     }
@@ -146,8 +146,8 @@ public partial class LoginViewModel : ObservableObject
 
     private void LoadSavedCredentials()
     {
-        Server   = _config.Get<string>("server") ?? string.Empty;
-        Port     = _config.Get<string>("port")   ?? "8006";
+        Server   = _config.Get<string>("server")   ?? string.Empty;
+        Port     = _config.Get<string>("port")     ?? "8006";
         Username = _config.Get<string>("username") ?? string.Empty;
         SkipSsl  = _config.Get<bool>("skipSsl");
     }

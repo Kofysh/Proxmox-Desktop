@@ -14,23 +14,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private CancellationTokenSource _cts = new();
 
     // -------------------------------------------------------------------------
-    // State
+    // State — partial properties (AOT-compatible WinRT, MVVMTK0045)
     // -------------------------------------------------------------------------
 
     [ObservableProperty]
-    private ObservableCollection<MachineData> _machines = [];
+    public partial ObservableCollection<MachineData> Machines { get; set; } = [];
 
     [ObservableProperty]
-    private ObservableCollection<MachineData> _filteredMachines = [];
+    public partial ObservableCollection<MachineData> FilteredMachines { get; set; } = [];
 
     [ObservableProperty]
-    private bool _isLoading;
+    public partial bool IsLoading { get; set; }
 
     [ObservableProperty]
-    private string _searchQuery = string.Empty;
+    public partial string SearchQuery { get; set; } = string.Empty;
 
     [ObservableProperty]
-    private string? _statusMessage;
+    public partial string? StatusMessage { get; set; }
 
     partial void OnSearchQueryChanged(string value) => ApplyFilter();
 
@@ -94,7 +94,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             ApplyFilter();
         }
         catch (OperationCanceledException) { }
-        catch (Exception ex) { StatusMessage = $"Erreur de chargement : {ex.Message}"; }
+        catch (Exception ex) { StatusMessage = $"Erreur de chargement : {ex.Message}"; }
         finally { IsLoading = false; }
     }
 
