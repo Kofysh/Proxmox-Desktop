@@ -1,4 +1,5 @@
 ﻿/bin/
 /obj/
 /ILLink/
-/Notes/
+/Notes/src/**/bin/
+src/**/obj/
