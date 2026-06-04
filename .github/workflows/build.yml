@@ -1,0 +1,32 @@
+name: Build WinUI 3
+
+on:
+  push:
+    branches: [ feature/winui3-migration ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Copy assets from Resources/
+        shell: pwsh
+        run: .\scripts\copy-assets.ps1
+
+      - name: Restore NuGet packages
+        run: dotnet restore src/ProxmoxDesktop.sln
+
+      - name: Build (Release x64)
+        run: dotnet build src/ProxmoxDesktop.sln
+               --configuration Release
+               --no-restore
+               -p:Platform=x64
