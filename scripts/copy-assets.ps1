@@ -1,54 +1,34 @@
 # copy-assets.ps1
-# Copie les assets depuis l'ancien projet WinForms vers le nouveau projet WinUI 3.
-# A executer UNE SEULE FOIS apres avoir clone la branche feature/winui3-migration.
+# Copie les assets depuis Resources/ vers src/ProxmoxDesktop.App/Assets/
 #
-# Usage depuis la racine du repo (3 manieres equivalentes) :
-#   .\scripts\copy-assets.ps1          <- appel direct (recommande)
-#   & '.\scripts\copy-assets.ps1'      <- appel avec &
-#   . '.\scripts\copy-assets.ps1'      <- dot-sourcing (fonctionne aussi)
-
-[CmdletBinding()]
-param(
-    [string]$SourceRoot,
-    [string]$DestRoot
-)
+# Usage (toutes les formes fonctionnent) :
+#   .\scripts\copy-assets.ps1
+#   & '.\scripts\copy-assets.ps1'
+#   . '.\scripts\copy-assets.ps1'
 
 $ErrorActionPreference = "Stop"
 
-# $PSScriptRoot est vide en dot-sourcing ; on le reconstruit depuis MyInvocation
-if (-not $PSScriptRoot -or $PSScriptRoot -eq '') {
-    $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+# Retrouver le dossier du script de facon robuste (appel direct ET dot-sourcing)
+$_scriptPath = if ($MyInvocation.MyCommand.Path) {
+    $MyInvocation.MyCommand.Path
+} elseif ($PSCommandPath) {
+    $PSCommandPath
 } else {
-    $ScriptDir = $PSScriptRoot
+    Join-Path (Get-Location).Path 'scripts\copy-assets.ps1'
 }
 
-# Si toujours vide (appel interactif rare), on part du repertoire courant
-if (-not $ScriptDir -or $ScriptDir -eq '') {
-    $ScriptDir = Join-Path (Get-Location).Path 'scripts'
-}
+$_repoRoot  = [System.IO.Path]::GetFullPath((Join-Path (Split-Path $_scriptPath) '..'))
+$SourceRoot = Join-Path $_repoRoot 'Resources'
+$DestRoot   = Join-Path $_repoRoot 'src' 'ProxmoxDesktop.App' 'Assets'
 
-# Resoudre les chemins par defaut si non passes en parametre
-if (-not $SourceRoot) {
-    $SourceRoot = Resolve-Path (Join-Path $ScriptDir '..' 'Resources') -ErrorAction SilentlyContinue
-    if (-not $SourceRoot) {
-        $SourceRoot = Join-Path $ScriptDir '..' 'Resources'
-    }
-}
-if (-not $DestRoot) {
-    $DestRoot = Join-Path $ScriptDir '..' 'src' 'ProxmoxDesktop.App' 'Assets'
-}
-
-# Normaliser les chemins (supprime les ..\ pour l'affichage)
-$SourceRoot = [System.IO.Path]::GetFullPath($SourceRoot)
-$DestRoot   = [System.IO.Path]::GetFullPath($DestRoot)
-
+Write-Host "Repo    : $_repoRoot"
 Write-Host "Source  : $SourceRoot"
 Write-Host "Dest    : $DestRoot"
 Write-Host ""
 
 if (-not (Test-Path $SourceRoot)) {
-    Write-Error "Dossier Resources introuvable : $SourceRoot`nLance ce script depuis la racine du repo."
-    exit 1
+    Write-Error "Dossier Resources introuvable : $SourceRoot`nVerifie que tu es bien dans la racine du repo."
+    return
 }
 
 New-Item -ItemType Directory -Force -Path $DestRoot | Out-Null
@@ -60,7 +40,7 @@ $copies = @(
     @{ Src = "lxc_logo.png";           Dst = "lxc.png"     }
 )
 
-$ok = 0
+$ok   = 0
 $warn = 0
 
 foreach ($item in $copies) {
@@ -80,13 +60,11 @@ foreach ($item in $copies) {
 
 Write-Host ""
 if ($warn -gt 0) {
-    Write-Warning "$warn fichier(s) manquant(s). Le dossier Resources est-il bien present ?"
+    Write-Warning "$warn fichier(s) manquant(s)."
 }
 if ($ok -gt 0) {
     Write-Host "$ok asset(s) copies avec succes dans : $DestRoot" -ForegroundColor Green
-    Write-Host "Tu peux maintenant compiler : dotnet build src/ProxmoxDesktop.sln"
-}
-if ($ok -eq 0) {
-    Write-Error "Aucun asset copie. Verifie que le dossier Resources/ est bien present a la racine du repo."
-    exit 1
+    Write-Host "Lance maintenant : dotnet build src/ProxmoxDesktop.sln"
+} else {
+    Write-Error "Aucun asset copie. Verifie que Resources/ est bien present."
 }
