@@ -17,7 +17,7 @@
     <InformationalVersion>2.0.0</InformationalVersion>
     <!-- Mode unpackaged : pas de MSIX requis, exe direct -->
     <WindowsPackageType>None</WindowsPackageType>
-    <!-- Bootstrap automatique du WinAppSDK au démarrage (remplace l'enregistrement COM du MSIX) -->
+    <!-- Bootstrap automatique du WinAppSDK au démarrage -->
     <WindowsAppSdkBootstrapInitializeMode>Auto</WindowsAppSdkBootstrapInitializeMode>
     <DisableImplicitNuGetFallbackFolder>false</DisableImplicitNuGetFallbackFolder>
     <RestoreLockedMode>false</RestoreLockedMode>
@@ -43,6 +43,13 @@
     <Content Include="Assets\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <!-- Package.appxmanifest conservé dans le repo pour une future version packagée (MSIX),
+       mais exclu du build en mode unpackaged pour éviter le conflit COM (E_FAIL 0x80004005). -->
+  <ItemGroup>
+    <AppxManifest Remove="Package.appxmanifest" />
+    <None Include="Package.appxmanifest" />
   </ItemGroup>
 
 </Project>
