@@ -1,254 +1,377 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using ProxmoxDesktop.Core.Api.Internal;
 using ProxmoxDesktop.Core.Api.Models;
 
 namespace ProxmoxDesktop.Core.Api;
 
 /// <summary>
-/// Client HTTP async pour l'API Proxmox VE.
-/// Toutes les méthodes sont async — aucun appel bloquant.
+/// Client HTTP asynchrone pour l'API Proxmox VE.
+/// Toutes les méthodes sont async/await — aucun .GetAwaiter().GetResult().
+/// Utilise System.Text.Json (pas de Newtonsoft.Json).
+/// Le mot de passe n'est jamais conservé après l'authentification.
 /// </summary>
-public class ApiClient : IDisposable
+public sealed class ApiClient : IDisposable
 {
+    // -------------------------------------------------------------------------
+    // Options JSON partagées
+    // -------------------------------------------------------------------------
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+    };
+
+    // -------------------------------------------------------------------------
+    // Champs privés
+    // -------------------------------------------------------------------------
     private readonly HttpClient _http;
-    private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
+    private readonly string     _baseUrl;
+    private DataTicket?         _ticket;
+    private bool                _disposed;
 
-    public DataTicket? Ticket { get; private set; }
-    public ServerInfo Server { get; }
-    public List<MachineData> Machines { get; private set; } = [];
+    // -------------------------------------------------------------------------
+    // Constructeur
+    // -------------------------------------------------------------------------
 
+    /// <param name="server">IP ou hostname du serveur Proxmox (sans https://).</param>
+    /// <param name="port">Port de l'API PVE, généralement 8006.</param>
+    /// <param name="skipSsl">Si true, accepte les certificats self-signed sans erreur.</param>
     public ApiClient(string server, string port, bool skipSsl)
     {
-        Server = new ServerInfo(server, port, skipSsl);
+        _baseUrl = $"https://{server}:{port}/api2/json/";
+
         var handler = new HttpClientHandler { UseCookies = false };
         if (skipSsl)
-            handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+            handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
 
         _http = new HttpClient(handler)
         {
-            BaseAddress = new Uri($"https://{server}:{port}/api2/json/"),
-            Timeout = TimeSpan.FromSeconds(15)
+            BaseAddress = new Uri(_baseUrl),
+            Timeout     = TimeSpan.FromSeconds(15)
         };
+        _http.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
-    // -------------------------------------------------------------------------
-    // Auth
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // AUTHENTIFICATION
+    // =========================================================================
 
+    /// <summary>
+    /// Récupère la liste des realms disponibles sur le serveur.
+    /// Appelé avant le login pour peupler le ComboBox de la LoginPage.
+    /// </summary>
     public async Task<List<RealmData>> GetRealmsAsync(CancellationToken ct = default)
     {
-        var json = await GetRawAsync("access/domains", authenticated: false, ct);
-        var root = JsonSerializer.Deserialize<RootObject<RealmData>>(json, _jsonOptions);
-        return root?.Data ?? [];
+        var response = await _http.GetAsync("access/domains", ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        var parsed = JsonSerializer.Deserialize<PveListResponse<RealmData>>(body, _jsonOptions);
+        return parsed?.Data ?? [];
     }
 
-    public async Task<LoginResult> LoginAsync(string username, string password, string realm, string? otp = null, CancellationToken ct = default)
+    /// <summary>
+    /// Tente l'authentification username/password (+TOTP optionnel).
+    /// Le mot de passe n'est pas conservé après cet appel.
+    /// </summary>
+    public async Task<LoginResult> LoginAsync(
+        string username, string password, string realm,
+        string? otp = null, CancellationToken ct = default)
     {
-        var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        var form = new Dictionary<string, string>
         {
-            ["username"] = username,
+            ["username"] = $"{username}@{realm}",
             ["password"] = password,
             ["realm"]    = realm
-        });
+        };
+        if (!string.IsNullOrWhiteSpace(otp))
+            form["otp"] = otp;
 
-        using var response = await _http.PostAsync("access/ticket", form, ct);
-        if (!response.IsSuccessStatusCode)
-            return LoginResult.Failure("Identifiants incorrects.");
+        var result = await PostTicketAsync(form, ct).ConfigureAwait(false);
+        if (result is null) return LoginResult.Failure("Réponse invalide du serveur.");
 
-        var json = await response.Content.ReadAsStringAsync(ct);
-        var loginResp = JsonSerializer.Deserialize<LoginResponse>(json, _jsonOptions);
-        Ticket = loginResp?.Data;
-
-        if (Ticket is null) return LoginResult.Failure("Réponse invalide du serveur.");
-
-        if (Ticket.RequiresTotp)
+        // Ticket PVE indique que le TFA est requis
+        if (result.Ticket?.Contains("PVE:!tfa!") == true)
         {
             if (string.IsNullOrWhiteSpace(otp))
                 return LoginResult.TotpRequired();
-            return await TotpChallengeAsync(otp, ct);
+
+            // Deuxième passe : challenge TOTP
+            return await TotpChallengeAsync(result.Ticket, result.Username ?? username, otp, ct)
+                .ConfigureAwait(false);
         }
 
+        // Succès direct
+        if (result.Ticket is not null && result.CsrfPreventionToken is not null)
+        {
+            _ticket = new DataTicket
+            {
+                Ticket              = result.Ticket,
+                CsrfPreventionToken = result.CsrfPreventionToken,
+                Username            = result.Username ?? username
+            };
+            return LoginResult.Success();
+        }
+
+        return LoginResult.Failure("Identifiants incorrects.");
+    }
+
+    private async Task<LoginResult> TotpChallengeAsync(
+        string tfaTicket, string username, string otp, CancellationToken ct)
+    {
+        var form = new Dictionary<string, string>
+        {
+            ["username"]      = username,
+            ["password"]      = $"totp:{otp}",
+            ["tfa-challenge"] = tfaTicket
+        };
+
+        var result = await PostTicketAsync(form, ct).ConfigureAwait(false);
+        if (result?.Ticket is null || result.CsrfPreventionToken is null)
+            return LoginResult.Failure("Code TOTP invalide.");
+
+        _ticket = new DataTicket
+        {
+            Ticket              = result.Ticket,
+            CsrfPreventionToken = result.CsrfPreventionToken,
+            Username            = result.Username ?? username
+        };
         return LoginResult.Success();
     }
 
-    private async Task<LoginResult> TotpChallengeAsync(string otpCode, CancellationToken ct)
-    {
-        var form = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["username"]      = Ticket!.Username,
-            ["password"]      = $"totp:{otpCode}",
-            ["tfa-challenge"] = Ticket.Ticket
-        });
-
-        using var response = await _http.PostAsync("access/ticket", form, ct);
-        if (!response.IsSuccessStatusCode)
-            return LoginResult.Failure("Code TOTP invalide.");
-
-        var json = await response.Content.ReadAsStringAsync(ct);
-        var loginResp = JsonSerializer.Deserialize<LoginResponse>(json, _jsonOptions);
-        Ticket = loginResp?.Data;
-        return Ticket is not null ? LoginResult.Success() : LoginResult.Failure("Erreur TOTP.");
-    }
-
+    /// <summary>Renouvelle le ticket d'auth existant (appel toutes les ~90 min).</summary>
     public async Task RenewTicketAsync(CancellationToken ct = default)
     {
-        if (Ticket is null) return;
-        var form = new FormUrlEncodedContent(new Dictionary<string, string>
+        EnsureAuthenticated();
+        var form = new Dictionary<string, string>
         {
-            ["username"] = Ticket.Username,
-            ["password"] = Ticket.Ticket   // Le ticket actuel sert de password pour le renouvellement
-        });
-        using var response = await _http.PostAsync("access/ticket", form, ct);
-        if (!response.IsSuccessStatusCode) return;
-        var json = await response.Content.ReadAsStringAsync(ct);
-        var loginResp = JsonSerializer.Deserialize<LoginResponse>(json, _jsonOptions);
-        if (loginResp?.Data is not null) Ticket = loginResp.Data;
+            ["username"] = _ticket!.Username,
+            ["password"] = _ticket.Ticket   // Le ticket courant sert de password
+        };
+        var result = await PostTicketAsync(form, ct).ConfigureAwait(false);
+        if (result?.Ticket is not null && result.CsrfPreventionToken is not null)
+        {
+            _ticket = new DataTicket
+            {
+                Ticket              = result.Ticket,
+                CsrfPreventionToken = result.CsrfPreventionToken,
+                Username            = result.Username ?? _ticket.Username
+            };
+        }
     }
 
-    // -------------------------------------------------------------------------
-    // Machines
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // NŒUDS & MACHINES
+    // =========================================================================
 
+    /// <summary>Retourne la liste des nœuds du cluster.</summary>
+    public async Task<List<NodeData>> GetNodesAsync(CancellationToken ct = default)
+    {
+        var json = await GetAsync("nodes", ct).ConfigureAwait(false);
+        var parsed = JsonSerializer.Deserialize<PveListResponse<NodeData>>(json, _jsonOptions);
+        return parsed?.Data ?? [];
+    }
+
+    /// <summary>
+    /// Retourne toutes les VMs QEMU + containers LXC de tous les nœuds,
+    /// en parallèle (une requête par nœud pour chaque type).
+    /// </summary>
     public async Task<List<MachineData>> GetAllMachinesAsync(CancellationToken ct = default)
     {
-        var all = new List<MachineData>();
-        var nodesJson = await GetRawAsync("nodes", ct: ct);
-        var nodesRoot = JsonSerializer.Deserialize<RootObject<NodeData>>(nodesJson, _jsonOptions);
-        if (nodesRoot?.Data is null) return all;
+        var nodes = await GetNodesAsync(ct).ConfigureAwait(false);
 
-        var tasks = nodesRoot.Data.SelectMany(node => new[]
+        // Lancer toutes les requêtes en parallèle
+        var tasks = nodes.SelectMany(n => new[]
         {
-            FetchMachinesForNodeAsync(node, "lxc",  ct),
-            FetchMachinesForNodeAsync(node, "qemu", ct)
+            FetchMachinesForNodeAsync(n.Node, "qemu", ct),
+            FetchMachinesForNodeAsync(n.Node, "lxc",  ct)
         });
 
-        var results = await Task.WhenAll(tasks);
-        all.AddRange(results.SelectMany(r => r));
-        Machines = [.. all.OrderBy(m => m.Vmid)];
-        return Machines;
+        var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+        return results.SelectMany(r => r).ToList();
     }
 
-    private async Task<List<MachineData>> FetchMachinesForNodeAsync(NodeData node, string type, CancellationToken ct)
+    private async Task<List<MachineData>> FetchMachinesForNodeAsync(
+        string node, string type, CancellationToken ct)
     {
         try
         {
-            var json = await GetRawAsync($"nodes/{node.Node}/{type}", ct: ct);
-            var root = JsonSerializer.Deserialize<RootObject<MachineData>>(json, _jsonOptions);
-            if (root?.Data is null) return [];
-            foreach (var m in root.Data) m.NodeName = node.Node;
-            return root.Data;
+            var json = await GetAsync($"nodes/{node}/{type}", ct).ConfigureAwait(false);
+            var parsed = JsonSerializer.Deserialize<PveListResponse<MachineData>>(json, _jsonOptions);
+            if (parsed?.Data is null) return [];
+
+            // Injecter le nodename et le type (absents de la réponse list)
+            return parsed.Data.Select(m =>
+                m with { NodeName = node, Type = type }).ToList();
         }
-        catch { return []; }
+        catch { return []; }  // Un nœud hors-ligne ne doit pas bloquer les autres
     }
 
-    public async Task<bool> HasSpiceAsync(MachineData machine, CancellationToken ct = default)
+    // =========================================================================
+    // ACTIONS D'ALIMENTATION
+    // =========================================================================
+
+    /// <summary>
+    /// Exécute une action d'alimentation sur une VM/CT.
+    /// <paramref name="action"/> : start | shutdown | reboot | stop | reset | suspend.
+    /// <paramref name="hibernate"/> : true pour suspendre en mode hibernation (QEMU uniquement).
+    /// </summary>
+    public async Task<PowerResult> PowerActionAsync(
+        MachineData machine, string action,
+        bool hibernate = false, CancellationToken ct = default)
     {
-        try
+        var type = machine.IsLxc ? "lxc" : "qemu";
+        var path = $"nodes/{machine.NodeName}/{type}/{machine.Vmid}/status/{action}";
+
+        var postData = new Dictionary<string, string>();
+        if (hibernate && action == "suspend")
+            postData["todisk"] = "1";
+
+        var raw = await PostAsync(path, postData, ct).ConfigureAwait(false);
+        return raw switch
         {
-            var json = await GetRawAsync($"nodes/{machine.NodeName}/qemu/{machine.Vmid}/status/current", ct: ct);
-            using var doc = JsonDocument.Parse(json);
-            var spice = doc.RootElement.GetProperty("data").GetProperty("spice");
-            return spice.ValueKind == JsonValueKind.Number && spice.GetInt32() == 1;
-        }
-        catch { return false; }
-    }
-
-    // -------------------------------------------------------------------------
-    // Power
-    // -------------------------------------------------------------------------
-
-    public async Task<PowerResult> PowerActionAsync(MachineData machine, string action, bool toDisk = false, CancellationToken ct = default)
-    {
-        var data = new Dictionary<string, string>
-        {
-            ["node"]  = machine.NodeName,
-            ["vmid"]  = machine.Vmid.ToString()
-        };
-        if (toDisk && action == "suspend") data["todisk"] = "1";
-
-        var result = await PostRawAsync(
-            $"nodes/{machine.NodeName}/{machine.Type}/{machine.Vmid}/status/{action}",
-            data, ct);
-
-        return result switch
-        {
-            "403" => PowerResult.Forbidden,
-            null  => PowerResult.Error,
-            _     => PowerResult.Success
+            null    => PowerResult.Error,
+            "403"   => PowerResult.Forbidden,
+            _       => PowerResult.Ok
         };
     }
 
-    // -------------------------------------------------------------------------
-    // Console (NoVNC / xTermJS)
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // CONSOLES
+    // =========================================================================
 
-    public async Task<string?> GetConsoleUrlAsync(MachineData machine, string consoleType, CancellationToken ct = default)
+    /// <summary>
+    /// Génère l'URL d'accès à une console NoVNC ou xTermJS.
+    /// <paramref name="consoleType"/> : "novnc" ou "xtermjs".
+    /// </summary>
+    public async Task<string?> GetConsoleUrlAsync(
+        MachineData machine, string consoleType, CancellationToken ct = default)
     {
-        string path = machine.IsLxc
-            ? $"nodes/{machine.NodeName}/lxc/{machine.Vmid}/vncwebsocket"
-            : $"nodes/{machine.NodeName}/qemu/{machine.Vmid}/vncwebsocket";
+        EnsureAuthenticated();
+        var type   = machine.IsLxc ? "lxc" : "qemu";
+        var server = _http.BaseAddress!.Host;
+        var port   = _http.BaseAddress.Port;
 
-        // On reconstruit l'URL complète de la WebUI Proxmox pour le console WebView2
-        string ticketEncoded = Uri.EscapeDataString(Ticket!.Ticket);
-        string baseUrl = $"https://{Server.Host}:{Server.Port}";
-        string consoleUrl = consoleType switch
-        {
-            "novnc"   => $"{baseUrl}/?console=kvm&novnc=1&vmid={machine.Vmid}&vmname={machine.Name}&node={machine.NodeName}&resize=off&PVEAuthCookie={ticketEncoded}",
-            "xtermjs" => $"{baseUrl}/?console=shell&xtermjs=1&vmid={machine.Vmid}&vmname={machine.Name}&node={machine.NodeName}&PVEAuthCookie={ticketEncoded}",
-            _         => $"{baseUrl}/?console=kvm&novnc=1&vmid={machine.Vmid}&vmname={machine.Name}&node={machine.NodeName}&PVEAuthCookie={ticketEncoded}"
-        };
-        return consoleUrl;
+        // Générer le VNC ticket pour cette VM
+        var path     = $"nodes/{machine.NodeName}/{type}/{machine.Vmid}/vncproxy";
+        var postData = new Dictionary<string, string> { ["websocket"] = "1" };
+        var raw      = await PostAsync(path, postData, ct).ConfigureAwait(false);
+        if (raw is null or "403") return null;
+
+        var resp = JsonSerializer.Deserialize<PveResponse<VncTicketData>>(raw, _jsonOptions);
+        if (resp?.Data is null) return null;
+
+        var vncTicket = Uri.EscapeDataString(resp.Data.Ticket ?? string.Empty);
+        var vmName    = Uri.EscapeDataString(machine.Name);
+        var authTicket= Uri.EscapeDataString(_ticket!.Ticket);
+
+        return consoleType == "xtermjs"
+            ? $"https://{server}:{port}/?console=xtermjs&vmid={machine.Vmid}&vmname={vmName}"
+              + $"&node={machine.NodeName}&resize=1&cmd="
+              + $"#pve_data=token_ticket={vncTicket}"
+            : $"https://{server}:{port}/?console=kvm&novnc=1&vmid={machine.Vmid}&vmname={vmName}"
+              + $"&node={machine.NodeName}&resize=scale&autoconnect=1"
+              + $"&path=api2/json/nodes/{machine.NodeName}/{type}/{machine.Vmid}/vncwebsocket"
+              + $"&vncticket={vncTicket}&PVEAuthCookie={authTicket}";
     }
 
-    public async Task<SpiceObject?> GetSpiceConfigAsync(MachineData machine, string? proxyOverride = null, CancellationToken ct = default)
+    /// <summary>Récupère la configuration SPICE pour une VM (QEMU uniquement).</summary>
+    public async Task<SpiceObject?> GetSpiceConfigAsync(
+        MachineData machine, string? proxy = null, CancellationToken ct = default)
     {
-        var data = new Dictionary<string, string>();
-        if (!string.IsNullOrEmpty(proxyOverride)) data["proxy"] = proxyOverride;
+        if (machine.IsLxc) return null;
 
-        var json = await PostRawAsync(
-            $"nodes/{machine.NodeName}/{machine.Type}/{machine.Vmid}/spiceproxy",
-            data, ct);
+        var path     = $"nodes/{machine.NodeName}/qemu/{machine.Vmid}/spiceproxy";
+        var postData = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(proxy))
+            postData["proxy"] = proxy!;
 
-        if (json is null || json == "403") return null;
-        var resp = JsonSerializer.Deserialize<SpiceResponse>(json, _jsonOptions);
+        var raw = await PostAsync(path, postData, ct).ConfigureAwait(false);
+        if (raw is null or "403") return null;
+
+        var resp = JsonSerializer.Deserialize<PveResponse<SpiceObject>>(raw, _jsonOptions);
         return resp?.Data;
     }
 
-    // -------------------------------------------------------------------------
-    // HTTP primitives
-    // -------------------------------------------------------------------------
+    // =========================================================================
+    // HELPERS HTTP INTERNES
+    // =========================================================================
 
-    private async Task<string> GetRawAsync(string path, bool authenticated = true, CancellationToken ct = default)
+    private async Task<string> GetAsync(string path, CancellationToken ct = default)
     {
+        EnsureAuthenticated();
         using var req = new HttpRequestMessage(HttpMethod.Get, path);
-        if (authenticated && Ticket is not null)
-            req.Headers.TryAddWithoutValidation("Cookie", $"PVEAuthCookie={Ticket.Ticket}");
-        req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-        using var response = await _http.SendAsync(req, ct);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync(ct);
+        AddAuthHeaders(req);
+        var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
+        if (resp.StatusCode == HttpStatusCode.Forbidden) return "403";
+        resp.EnsureSuccessStatusCode();
+        return await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
     }
 
-    private async Task<string?> PostRawAsync(string path, Dictionary<string, string> postData, CancellationToken ct = default)
+    private async Task<string?> PostAsync(
+        string path, Dictionary<string, string>? data, CancellationToken ct = default)
     {
-        using var req = new HttpRequestMessage(HttpMethod.Post, path)
-        {
-            Content = new FormUrlEncodedContent(postData)
-        };
-        if (Ticket is not null)
-        {
-            req.Headers.TryAddWithoutValidation("Cookie", $"PVEAuthCookie={Ticket.Ticket}");
-            req.Headers.TryAddWithoutValidation("CSRFPreventionToken", Ticket.CsrfPreventionToken);
-        }
-        req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        EnsureAuthenticated();
+        using var req = new HttpRequestMessage(HttpMethod.Post, path);
+        AddAuthHeaders(req, includeCsrf: true);
+        if (data is { Count: > 0 })
+            req.Content = new FormUrlEncodedContent(data);
 
-        using var response = await _http.SendAsync(req, ct);
-        if (response.StatusCode == HttpStatusCode.Forbidden) return "403";
-        if (!response.IsSuccessStatusCode) return null;
-        return await response.Content.ReadAsStringAsync(ct);
+        var resp = await _http.SendAsync(req, ct).ConfigureAwait(false);
+        if (resp.StatusCode == HttpStatusCode.Forbidden) return "403";
+        if (!resp.IsSuccessStatusCode) return null;
+        return await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
     }
 
-    public void Dispose() => _http.Dispose();
+    /// <summary>
+    /// POST sur /access/ticket (sans auth cookie — utilisé pour login et renew).
+    /// </summary>
+    private async Task<TicketResponse?> PostTicketAsync(
+        Dictionary<string, string> form, CancellationToken ct)
+    {
+        using var content = new FormUrlEncodedContent(form);
+        var resp  = await _http.PostAsync("access/ticket", content, ct).ConfigureAwait(false);
+        if (!resp.IsSuccessStatusCode) return null;
+        var body   = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        var parsed = JsonSerializer.Deserialize<PveResponse<TicketResponse>>(body, _jsonOptions);
+        return parsed?.Data;
+    }
+
+    private void AddAuthHeaders(HttpRequestMessage req, bool includeCsrf = false)
+    {
+        req.Headers.TryAddWithoutValidation("Cookie", $"PVEAuthCookie={_ticket!.Ticket}");
+        if (includeCsrf)
+            req.Headers.TryAddWithoutValidation("CSRFPreventionToken", _ticket.CsrfPreventionToken);
+    }
+
+    private void EnsureAuthenticated()
+    {
+        if (_ticket is null)
+            throw new InvalidOperationException("ApiClient : non authentifié. Appelez LoginAsync() d'abord.");
+    }
+
+    // =========================================================================
+    // IDisposable
+    // =========================================================================
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _http.Dispose();
+        _disposed = true;
+    }
+
+    // -------------------------------------------------------------------------
+    // DTO interne VNC ticket
+    // -------------------------------------------------------------------------
+    private sealed class VncTicketData
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("ticket")]
+        public string? Ticket { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("port")]
+        public int Port { get; init; }
+    }
 }

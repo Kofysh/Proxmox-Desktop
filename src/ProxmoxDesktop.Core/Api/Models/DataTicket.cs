@@ -1,23 +1,12 @@
-using System.Text.Json.Serialization;
-
 namespace ProxmoxDesktop.Core.Api.Models;
 
-public class DataTicket
+/// <summary>
+/// Ticket d'authentification PVE retourné par /access/ticket.
+/// Seul le ticket et le CSRF sont conservés — le mot de passe n'est JAMAIS stocké ici.
+/// </summary>
+public sealed class DataTicket
 {
-    [JsonPropertyName("ticket")]
-    public string Ticket { get; set; } = string.Empty;
-
-    [JsonPropertyName("CSRFPreventionToken")]
-    public string CsrfPreventionToken { get; set; } = string.Empty;
-
-    [JsonPropertyName("username")]
-    public string Username { get; set; } = string.Empty;
-
-    public bool RequiresTotp => Ticket.Contains("PVE:!tfa!");
-}
-
-public class LoginResponse
-{
-    [JsonPropertyName("data")]
-    public DataTicket? Data { get; set; }
+    public string Ticket              { get; init; } = string.Empty;
+    public string CsrfPreventionToken { get; init; } = string.Empty;
+    public string Username            { get; init; } = string.Empty;
 }

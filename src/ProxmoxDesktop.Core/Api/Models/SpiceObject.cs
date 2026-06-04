@@ -2,38 +2,18 @@ using System.Text.Json.Serialization;
 
 namespace ProxmoxDesktop.Core.Api.Models;
 
-public class SpiceObject
+public sealed class SpiceObject
 {
-    [JsonPropertyName("title")]
-    public string? Title { get; set; }
-
-    [JsonPropertyName("proxy")]
-    public string? Proxy { get; set; }
-
-    [JsonPropertyName("type")]
-    public string? Type { get; set; }
-
-    [JsonPropertyName("ca")]
-    public string? Ca { get; set; }
-
-    [JsonPropertyName("host-subject")]
-    public string? HostSubject { get; set; }
-
-    [JsonPropertyName("tls-port")]
-    public int TlsPort { get; set; }
-
-    [JsonPropertyName("password")]
-    public string? Password { get; set; }
-
-    [JsonPropertyName("host")]
-    public string? Host { get; set; }
-
-    [JsonPropertyName("delete-this-file")]
-    public int DeleteThisFile { get; set; }
-}
-
-public class SpiceResponse
-{
-    [JsonPropertyName("data")]
-    public SpiceObject? Data { get; set; }
+    [JsonPropertyName("host")]             public string Host            { get; init; } = string.Empty;
+    [JsonPropertyName("tls-port")]         public int    TlsPort         { get; init; }
+    [JsonPropertyName("password")]         public string Password        { get; init; } = string.Empty;
+    [JsonPropertyName("ca")]               public string? Ca             { get; init; }
+    [JsonPropertyName("host-subject")]     public string? HostSubject    { get; init; }
+    [JsonPropertyName("proxy")]            public string? Proxy          { get; init; }
+    [JsonPropertyName("title")]            public string? Title          { get; init; }
+    [JsonPropertyName("type")]             public string? Type           { get; init; }
+    [JsonPropertyName("toggle-fullscreen")]public string? ToggleFullscreen{ get; init; }
+    [JsonPropertyName("release-cursor")]   public string? ReleaseCursor  { get; init; }
+    [JsonPropertyName("secure-attention")] public string? SecureAttention{ get; init; }
+    [JsonPropertyName("delete-this-file")] public int    DeleteThisFile  { get; init; }
 }

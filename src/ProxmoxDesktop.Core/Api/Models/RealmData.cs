@@ -2,14 +2,13 @@ using System.Text.Json.Serialization;
 
 namespace ProxmoxDesktop.Core.Api.Models;
 
-public class RealmData
+public sealed class RealmData
 {
-    [JsonPropertyName("realm")]
-    public string Realm { get; set; } = string.Empty;
+    [JsonPropertyName("realm")]   public string Realm   { get; init; } = string.Empty;
+    [JsonPropertyName("comment")] public string? Comment { get; init; }
+    [JsonPropertyName("type")]    public string? Type    { get; init; }
 
-    [JsonPropertyName("comment")]
-    public string? Comment { get; set; }
-
-    [JsonPropertyName("type")]
-    public string? Type { get; set; }
+    // Affiché dans le ComboBox
+    public override string ToString() =>
+        string.IsNullOrEmpty(Comment) ? Realm : $"{Realm} — {Comment}";
 }

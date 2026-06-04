@@ -1,71 +1,67 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace ProxmoxDesktop.Core.Config;
 
 /// <summary>
-/// Service de configuration avec sauvegarde différée (lazy).
+/// Service de configuration persisté dans un fichier JSON local.
 /// Remplace l'ancienne classe Configurations qui sauvegardait à chaque SetSetting().
+/// Sauvegarde uniquement lors d'un appel explicite à Save().
+/// Le mot de passe n'est JAMAIS stocké.
 /// </summary>
-public class ConfigurationService
+public sealed class ConfigurationService
 {
-    private Dictionary<string, object?> _settings = [];
-    private readonly string _filePath;
-    private bool _isDirty;
+    private static readonly string ConfigPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "ProxmoxDesktop", "config.json");
 
-    private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
-    {
-        WriteIndented = true
-    };
+    private readonly JsonObject _data;
+    private bool _dirty;
 
-    public ConfigurationService(string appName = "ProxmoxDesktopClient")
+    public ConfigurationService()
     {
-        var folder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            appName);
-        Directory.CreateDirectory(folder);
-        _filePath = Path.Combine(folder, "settings.json");
-        Load();
-    }
-
-    public T? Get<T>(string key, T? defaultValue = default)
-    {
-        if (!_settings.TryGetValue(key, out var raw)) return defaultValue;
         try
         {
-            if (raw is JsonElement el)
-                return el.Deserialize<T>(_jsonOptions) ?? defaultValue;
-            return (T?)raw ?? defaultValue;
+            if (File.Exists(ConfigPath))
+            {
+                var json = File.ReadAllText(ConfigPath);
+                _data = JsonNode.Parse(json) as JsonObject ?? new JsonObject();
+            }
+            else
+            {
+                _data = new JsonObject();
+            }
         }
-        catch { return defaultValue; }
+        catch { _data = new JsonObject(); }
     }
 
-    public void Set(string key, object? value)
+    /// <summary>Lit une valeur de configuration. Retourne la valeur par défaut si absente.</summary>
+    public T? Get<T>(string key)
     {
-        _settings[key] = value;
-        _isDirty = true;
+        if (!_data.TryGetPropertyValue(key, out var node) || node is null)
+            return default;
+        try   { return node.GetValue<T>(); }
+        catch { return default; }
     }
 
-    /// <summary>Persiste les paramètres si des modifications sont en attente.</summary>
-    public void SaveIfDirty()
+    /// <summary>Définit une valeur. La sauvegarde n'est effectuée qu'après Save().</summary>
+    public void Set<T>(string key, T value)
     {
-        if (!_isDirty) return;
-        var json = JsonSerializer.Serialize(_settings, _jsonOptions);
-        File.WriteAllText(_filePath, json);
-        _isDirty = false;
+        _data[key] = JsonValue.Create(value);
+        _dirty     = true;
     }
 
-    /// <summary>Force la sauvegarde immédiate.</summary>
+    /// <summary>Persiste la configuration sur disque (appel explicite uniquement).</summary>
     public void Save()
     {
-        var json = JsonSerializer.Serialize(_settings, _jsonOptions);
-        File.WriteAllText(_filePath, json);
-        _isDirty = false;
-    }
-
-    private void Load()
-    {
-        if (!File.Exists(_filePath)) return;
-        var json = File.ReadAllText(_filePath);
-        _settings = JsonSerializer.Deserialize<Dictionary<string, object?>>(_filePath, _jsonOptions) ?? [];
+        if (!_dirty) return;
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+            var json = _data.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(ConfigPath, json);
+            _dirty = false;
+        }
+        catch { /* log silencieux — ne pas planter l'UI pour un échec de sauvegarde */ }
     }
 }
