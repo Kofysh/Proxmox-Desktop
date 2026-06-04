@@ -1,15 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>12</LangVersion>
+    <LangVersion>latest</LangVersion>
     <AssemblyName>ProxmoxDesktop.Core</AssemblyName>
     <RootNamespace>ProxmoxDesktop.Core</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
-  <!-- Aucune dépendance externe — System.Text.Json est inclus dans .NET 8 -->
+  <!-- Aucune dépendance externe — System.Text.Json est inclus dans .NET 10 -->
 
 </Project>
