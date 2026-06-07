@@ -16,9 +16,10 @@
     <AssemblyName>ProxmoxDesktop</AssemblyName>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <InformationalVersion>2.0.0</InformationalVersion>
-    <!-- Mode unpackaged : pas de MSIX, exe portable dans un dossier -->
+    <!-- Mode unpackaged portable : toutes les DLLs WinUI embarquées dans le dossier publish -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSdkBootstrapInitializeMode>Auto</WindowsAppSdkBootstrapInitializeMode>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
     <DisableImplicitNuGetFallbackFolder>false</DisableImplicitNuGetFallbackFolder>
     <RestoreLockedMode>false</RestoreLockedMode>
