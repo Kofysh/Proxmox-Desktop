@@ -1,4 +1,4 @@
-name: Build et publication
+name: Build and Release
 
 on:
   push:
@@ -12,18 +12,18 @@ jobs:
       contents: write
 
     steps:
-      - name: Récupération du code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Installation de .NET 10
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
 
-      - name: Restauration des dépendances
+      - name: Restore dependencies
         run: dotnet restore src/ProxmoxDesktop.App/ProxmoxDesktop.App.csproj
 
-      - name: Mise à jour de la version
+      - name: Update version
         run: |
           $version = "${{ github.ref_name }}".TrimStart('v')
           $csproj  = "src/ProxmoxDesktop.App/ProxmoxDesktop.App.csproj"
@@ -33,7 +33,7 @@ jobs:
             | Set-Content $csproj
         shell: pwsh
 
-      - name: Publication de l'application
+      - name: Publish application
         run: |
           dotnet publish src/ProxmoxDesktop.App/ProxmoxDesktop.App.csproj `
             -c Release `
@@ -42,7 +42,7 @@ jobs:
             -o output/ProxmoxDesktop
         shell: pwsh
 
-      - name: Création du ZIP
+      - name: Create ZIP archive
         run: |
           $tag = "${{ github.ref_name }}"
           Compress-Archive `
@@ -50,22 +50,22 @@ jobs:
             -DestinationPath output/ProxmoxDesktop-$tag-win-x64.zip
         shell: pwsh
 
-      - name: Création de la release GitHub
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: Proxmox Desktop ${{ github.ref_name }}
           body: |
             ## Installation
 
-            1. Télécharger `ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip`
-            2. Extraire le dossier où tu veux
-            3. Lancer `ProxmoxDesktop.exe`
+            1. Download `ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip`
+            2. Extract the folder anywhere you want
+            3. Run `ProxmoxDesktop.exe`
 
-            > Aucune installation requise — application portable.
+            > No installation required — fully portable application. All WinUI 3 runtime components are bundled.
 
-            ## Prérequis
-            - Windows 10 (build 19041+) ou Windows 11
-            - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) si non préinstallé (Windows 10 uniquement)
+            ## Requirements
+            - Windows 10 (build 19041+) or Windows 11
+            - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) if not already installed (Windows 10 only — pre-installed on Windows 11)
           files: output/ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip
           draft: false
           prerelease: false
