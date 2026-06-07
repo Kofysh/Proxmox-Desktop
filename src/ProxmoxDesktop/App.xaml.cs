@@ -1,19 +1,22 @@
-using Microsoft.UI.Xaml;
+using System.Windows;
 using ProxmoxDesktop.Services;
-using ProxmoxDesktop.Views;
 
 namespace ProxmoxDesktop;
 
 public partial class App : Application
 {
-    public static MainWindow? MainWindow { get; private set; }
-
-    public App() => InitializeComponent();
-
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override void OnStartup(StartupEventArgs e)
     {
+        base.OnStartup(e);
         NotificationService.Register();
-        MainWindow = new MainWindow();
-        MainWindow.Activate();
+
+        var login = new Views.LoginWindow();
+        login.Show();
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        NotificationService.Unregister();
+        base.OnExit(e);
     }
 }

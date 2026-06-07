@@ -1,0 +1,12 @@
+<Window
+    x:Class="ProxmoxDesktop.Views.ConsoleWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+    Width="1280" Height="780"
+    WindowStartupLocation="CenterOwner"
+    Background="#1E1E1E">
+    <Grid>
+        <wv2:WebView2 x:Name="ConsoleWebView"/>
+    </Grid>
+</Window>

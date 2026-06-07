@@ -1,42 +1,61 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using MaterialDesignThemes.Wpf;
 using ProxmoxDesktop.Api;
+using ProxmoxDesktop.Api.Models;
+using ProxmoxDesktop.Console;
+using ProxmoxDesktop.ViewModels;
 
 namespace ProxmoxDesktop.Views;
 
-public sealed partial class MainWindow : Window
+public partial class MainWindow : Window
 {
     public static MainWindow? Instance { get; private set; }
+    public ISnackbarMessageQueue SnackbarService => MainSnackbar.MessageQueue!;
 
-    public MainWindow()
+    private readonly MainViewModel _vm;
+    private bool _isDark = true;
+
+    public MainWindow(ApiClient api)
     {
         InitializeComponent();
         Instance = this;
-        RootFrame.Navigate(typeof(LoginPage));
+
+        _vm = new MainViewModel(api);
+        DataContext = _vm;
+
+        _vm.OnLogout      += OnLogout;
+        _vm.OnOpenConsole += OpenConsole;
+        _vm.OnOpenSpice   += OpenSpice;
+
+        Loaded += async (_, _) => await _vm.RefreshAsync();
+        Closed += (_, _) => { _vm.Dispose(); Instance = null; };
     }
 
-    /// <summary>Navigate to main page, passing the authenticated ApiClient as parameter.</summary>
-    public void NavigateToMain(ApiClient api) => RootFrame.Navigate(typeof(MainPage), api);
-
-    /// <summary>Return to login page.</summary>
-    public void NavigateToLogin()
+    private void OnLogout()
     {
-        RootFrame.Navigate(typeof(LoginPage));
-        RootFrame.BackStack.Clear();
+        _vm.Dispose();
+        Instance = null;
+        var login = new LoginWindow();
+        login.Show();
+        Close();
     }
 
-    /// <summary>Toggle dark/light theme on the root frame.</summary>
-    public void ToggleTheme()
+    private void OpenConsole(MachineData machine, string url)
     {
-        RootFrame.RequestedTheme = RootFrame.RequestedTheme switch
-        {
-            ElementTheme.Dark    => ElementTheme.Light,
-            ElementTheme.Light   => ElementTheme.Dark,
-            _                    => ElementTheme.Dark   // Default → Dark first
-        };
+        var win = new ConsoleWindow(machine, url);
+        win.Show();
     }
 
-    public ElementTheme CurrentTheme => RootFrame.RequestedTheme == ElementTheme.Default
-        ? (Application.Current.RequestedTheme == ApplicationTheme.Dark ? ElementTheme.Dark : ElementTheme.Light)
-        : RootFrame.RequestedTheme;
+    private async void OpenSpice(SpiceObject cfg)
+        => await SpiceLauncher.LaunchAsync(cfg);
+
+    private void OnThemeToggle(object sender, RoutedEventArgs e)
+    {
+        _isDark = !_isDark;
+        var paletteHelper = new PaletteHelper();
+        var theme = paletteHelper.GetTheme();
+        theme.SetBaseTheme(_isDark ? BaseTheme.Dark : BaseTheme.Light);
+        paletteHelper.SetTheme(theme);
+        ThemeIcon.Kind = _isDark ? PackIconKind.WeatherNight : PackIconKind.WeatherSunny;
+    }
 }

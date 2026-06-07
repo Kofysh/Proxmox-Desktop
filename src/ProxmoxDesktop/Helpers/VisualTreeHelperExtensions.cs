@@ -1,5 +1,5 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Media;
+using System.Windows;
+using System.Windows.Media;
 
 namespace ProxmoxDesktop.Helpers;
 

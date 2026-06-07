@@ -15,23 +15,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET 10
+      - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '9.0.x'
 
       - name: Restore dependencies
         run: dotnet restore src/ProxmoxDesktop/ProxmoxDesktop.csproj
-
-      - name: Update version
-        run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
-          $csproj  = "src/ProxmoxDesktop/ProxmoxDesktop.csproj"
-          (Get-Content $csproj) `
-            -replace '<AssemblyVersion>[^<]+</AssemblyVersion>', "<AssemblyVersion>$version.0</AssemblyVersion>" `
-            -replace '<InformationalVersion>[^<]+</InformationalVersion>', "<InformationalVersion>$version</InformationalVersion>" `
-            | Set-Content $csproj
-        shell: pwsh
 
       - name: Publish application
         run: |
@@ -56,17 +46,14 @@ jobs:
           name: Proxmox Desktop ${{ github.ref_name }}
           body: |
             ## Installation
-
             1. Download `ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip`
-            2. Extract the folder anywhere
+            2. Extract anywhere
             3. Run `ProxmoxDesktop.exe`
 
-            > No installation required — fully portable. All WinUI 3 runtime components are bundled.
+            > Fully portable — no installation required.
 
             ## Requirements
             - Windows 10 (build 19041+) or Windows 11
-            - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) if not pre-installed (Windows 10 only)
+            - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) for console features
           files: output/ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip
-          draft: false
-          prerelease: false
           generate_release_notes: true

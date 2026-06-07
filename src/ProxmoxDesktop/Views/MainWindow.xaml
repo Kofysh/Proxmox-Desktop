@@ -1,8 +1,188 @@
-<?xml version="1.0" encoding="utf-8"?>
 <Window
     x:Class="ProxmoxDesktop.Views.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Proxmox Desktop">
-    <Frame x:Name="RootFrame"/>
+    xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:vm="clr-namespace:ProxmoxDesktop.ViewModels"
+    xmlns:models="clr-namespace:ProxmoxDesktop.Api.Models"
+    xmlns:controls="clr-namespace:ProxmoxDesktop.Controls"
+    xmlns:converters="clr-namespace:ProxmoxDesktop.Converters"
+    Title="Proxmox Desktop"
+    MinWidth="900" MinHeight="600"
+    Width="1280" Height="780"
+    WindowStartupLocation="CenterScreen"
+    Background="{DynamicResource MaterialDesign.Brush.Background}"
+    TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+    FontFamily="{md:MaterialDesignFont}"
+    md:ThemeAssist.Theme="Inherit">
+
+    <Window.Resources>
+        <converters:NotNullToVisibilityConverter     x:Key="NotNullToVisibility"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
+        <BooleanToVisibilityConverter               x:Key="BoolToVisibility"/>
+        <converters:StatusToBrushConverter          x:Key="StatusToBrush"/>
+    </Window.Resources>
+
+    <md:DialogHost Identifier="MainDialog">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- ============================================================ -->
+            <!-- Toolbar -->
+            <!-- ============================================================ -->
+            <md:ColorZone Grid.Row="0" Mode="PrimaryMid" Padding="12,8">
+                <DockPanel>
+
+                    <!-- Left: logo + title -->
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Image Source="/Assets/proxmox.png" Width="28" Height="28"/>
+                        <TextBlock Text="Proxmox Desktop"
+                                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   FontWeight="Medium" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Right: actions -->
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+
+                        <!-- Group by node -->
+                        <ToggleButton
+                            Style="{StaticResource MaterialDesignFlatToggleButton}"
+                            IsChecked="{Binding IsGroupedByNode}"
+                            ToolTip="Group by node"
+                            Foreground="White">
+                            <md:PackIcon Kind="ViewGrid" Width="20" Height="20"/>
+                        </ToggleButton>
+
+                        <!-- Theme toggle -->
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                Click="OnThemeToggle"
+                                ToolTip="Toggle dark/light mode"
+                                Foreground="White">
+                            <md:PackIcon x:Name="ThemeIcon" Kind="WeatherNight" Width="20" Height="20"/>
+                        </Button>
+
+                        <!-- Refresh -->
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                Command="{Binding RefreshCommand}"
+                                ToolTip="Refresh"
+                                Foreground="White">
+                            <md:PackIcon Kind="Refresh" Width="20" Height="20"/>
+                        </Button>
+
+                        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="4,0"/>
+
+                        <!-- Logout -->
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}"
+                                Command="{Binding LogoutCommand}"
+                                ToolTip="Logout"
+                                Foreground="White">
+                            <md:PackIcon Kind="Logout" Width="20" Height="20"/>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Center: search -->
+                    <TextBox
+                        Margin="24,0"
+                        md:HintAssist.Hint="Search VMs and containers..."
+                        md:TextFieldAssist.HasLeadingIcon="True"
+                        md:TextFieldAssist.LeadingIcon="Magnify"
+                        Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                        md:TextFieldAssist.TextFieldCornerRadius="20"
+                        Foreground="White"
+                        md:HintAssist.Foreground="#AAFFFFFF"
+                        Background="#22FFFFFF"
+                        BorderBrush="#44FFFFFF"
+                        md:TextFieldAssist.UnderlineBrush="Transparent"
+                        CaretBrush="White"
+                        MaxWidth="380"
+                        Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                        VerticalAlignment="Center"/>
+                </DockPanel>
+            </md:ColorZone>
+
+            <!-- Loading bar -->
+            <ProgressBar Grid.Row="1"
+                         IsIndeterminate="True" Height="3"
+                         Style="{StaticResource MaterialDesignLinearProgressBar}"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- ============================================================ -->
+            <!-- Content -->
+            <!-- ============================================================ -->
+            <ScrollViewer Grid.Row="2" Padding="16" VerticalScrollBarVisibility="Auto">
+
+                <!-- Flat view -->
+                <ItemsControl
+                    ItemsSource="{Binding FilteredMachines}"
+                    Visibility="{Binding IsGroupedByNode, Converter={StaticResource InverseBoolToVisibility}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:MachineData}">
+                            <controls:MachineCard Machine="{Binding}" Margin="0,0,12,12"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Grouped view -->
+                <ItemsControl
+                    ItemsSource="{Binding GroupedMachines}"
+                    Visibility="{Binding IsGroupedByNode, Converter={StaticResource BoolToVisibility}}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:NodeGroup}">
+                            <StackPanel Margin="0,0,0,24">
+
+                                <!-- Node header -->
+                                <DockPanel Margin="0,0,0,12">
+                                    <md:PackIcon Kind="Server" VerticalAlignment="Center" Margin="0,0,8,0"
+                                                 Foreground="{DynamicResource MaterialDesign.Brush.Primary}"/>
+                                    <TextBlock Text="{Binding NodeName}"
+                                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                               FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <md:Chip Content="{Binding Summary}" Margin="12,0,0,0"
+                                             IsDeletable="False"
+                                             Foreground="{DynamicResource MaterialDesign.Brush.Primary.Foreground}"
+                                             Background="{DynamicResource MaterialDesign.Brush.Primary}"/>
+                                </DockPanel>
+
+                                <!-- Cards -->
+                                <ItemsControl ItemsSource="{Binding Machines}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type models:MachineData}">
+                                            <controls:MachineCard Machine="{Binding}" Margin="0,0,12,12"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Separator Margin="0,12,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+            </ScrollViewer>
+
+            <!-- ============================================================ -->
+            <!-- Status / error snackbar -->
+            <!-- ============================================================ -->
+            <md:Snackbar
+                Grid.Row="3"
+                x:Name="MainSnackbar"
+                MessageQueue="{md:MessageQueue}"/>
+
+        </Grid>
+    </md:DialogHost>
 </Window>

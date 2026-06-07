@@ -15,13 +15,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private CancellationTokenSource _cts = new();
     private Dictionary<int, string> _previousStatuses = [];
 
-    [ObservableProperty] public partial ObservableCollection<MachineData> Machines       { get; set; } = [];
-    [ObservableProperty] public partial ObservableCollection<NodeGroup>   GroupedMachines{ get; set; } = [];
+    [ObservableProperty] public partial ObservableCollection<MachineData> Machines        { get; set; } = [];
+    [ObservableProperty] public partial ObservableCollection<NodeGroup>   GroupedMachines { get; set; } = [];
     [ObservableProperty] public partial ObservableCollection<MachineData> FilteredMachines{ get; set; } = [];
-    [ObservableProperty] public partial bool    IsLoading      { get; set; }
-    [ObservableProperty] public partial string  SearchQuery    { get; set; } = string.Empty;
-    [ObservableProperty] public partial string? StatusMessage  { get; set; }
-    [ObservableProperty] public partial bool    IsGroupedByNode{ get; set; }
+    [ObservableProperty] public partial bool    IsLoading       { get; set; }
+    [ObservableProperty] public partial string  SearchQuery     { get; set; } = string.Empty;
+    [ObservableProperty] public partial string? StatusMessage   { get; set; }
+    [ObservableProperty] public partial bool    IsGroupedByNode { get; set; }
 
     partial void OnSearchQueryChanged(string _)     => ApplyFilter();
     partial void OnIsGroupedByNodeChanged(bool _)   => ApplyFilter();
@@ -48,24 +48,24 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             var all = await _api.GetAllMachinesAsync(ct);
 
-            // Notifications — skip on first load
             if (_previousStatuses.Count > 0)
                 foreach (var m in all)
                     if (_previousStatuses.TryGetValue(m.Vmid, out var prev) && prev != m.Status)
                         NotificationService.NotifyStateChange(m.Name, m.Vmid, prev, m.Status);
 
-            // Thread-safe snapshot update
             var snapshot = all.ToDictionary(m => m.Vmid, m => m.Status);
             Interlocked.Exchange(ref _previousStatuses, snapshot);
 
-            // Differential update
-            var existing = Machines.ToDictionary(m => m.Vmid);
-            foreach (var m in all)
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
-                if (existing.ContainsKey(m.Vmid)) Machines[Machines.IndexOf(Machines.First(x => x.Vmid == m.Vmid))] = m;
-                else Machines.Add(m);
-            }
-            foreach (var m in Machines.Where(m => all.All(a => a.Vmid != m.Vmid)).ToList()) Machines.Remove(m);
+                var existing = Machines.ToDictionary(m => m.Vmid);
+                foreach (var m in all)
+                {
+                    if (existing.ContainsKey(m.Vmid)) Machines[Machines.IndexOf(Machines.First(x => x.Vmid == m.Vmid))] = m;
+                    else Machines.Add(m);
+                }
+                foreach (var m in Machines.Where(m => all.All(a => a.Vmid != m.Vmid)).ToList()) Machines.Remove(m);
+            });
             ApplyFilter();
         }
         catch (OperationCanceledException) { }
@@ -83,7 +83,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             PowerResult.Error     => "Power action failed.",
             _                     => null
         };
-        await Task.Delay(3000);
+        await Task.Delay(2000);
         await RefreshAsync();
     }
 
@@ -111,11 +111,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 m.Vmid.ToString().Contains(q) ||
                 m.NodeName.Contains(q, StringComparison.OrdinalIgnoreCase))).ToList();
 
-        FilteredMachines = new ObservableCollection<MachineData>(filtered);
-
-        GroupedMachines = new ObservableCollection<NodeGroup>(
-            filtered.GroupBy(m => m.NodeName).OrderBy(g => g.Key)
-                    .Select(g => new NodeGroup(g.Key, new ObservableCollection<MachineData>(g.OrderBy(m => m.Vmid)))));
+        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        {
+            FilteredMachines = new ObservableCollection<MachineData>(filtered);
+            GroupedMachines  = new ObservableCollection<NodeGroup>(
+                filtered.GroupBy(m => m.NodeName).OrderBy(g => g.Key)
+                        .Select(g => new NodeGroup(g.Key, new ObservableCollection<MachineData>(g.OrderBy(m => m.Vmid)))));
+        });
     }
 
     public event Action<MachineData, string>? OnOpenConsole;
@@ -138,7 +140,7 @@ public record ConsoleArgs(MachineData Machine, string ConsoleType);
 
 public sealed class NodeGroup(string nodeName, ObservableCollection<MachineData> machines)
 {
-    public string NodeName  { get; } = nodeName;
+    public string NodeName   { get; } = nodeName;
     public ObservableCollection<MachineData> Machines { get; } = machines;
     public int    Count        => Machines.Count;
     public int    RunningCount => Machines.Count(m => m.IsRunning);
