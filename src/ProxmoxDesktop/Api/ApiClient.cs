@@ -18,6 +18,7 @@ public sealed class ApiClient : IDisposable
     private readonly HttpClient _http;
     private readonly string     _baseUrl;
     private DataTicket?         _ticket;
+    private ApiTokenCredential? _apiToken;  // set when using token auth
     private bool                _disposed;
 
     public ApiClient(string server, string port, bool skipSsl)
@@ -35,7 +36,7 @@ public sealed class ApiClient : IDisposable
     }
 
     // =========================================================================
-    // AUTH
+    // AUTH — Password
     // =========================================================================
 
     public async Task<List<RealmData>> GetRealmsAsync(CancellationToken ct = default)
@@ -69,7 +70,8 @@ public sealed class ApiClient : IDisposable
 
         if (result.Ticket is not null && result.CsrfPreventionToken is not null)
         {
-            _ticket = new DataTicket { Ticket = result.Ticket, CsrfPreventionToken = result.CsrfPreventionToken, Username = result.Username ?? username };
+            _ticket   = new DataTicket { Ticket = result.Ticket, CsrfPreventionToken = result.CsrfPreventionToken, Username = result.Username ?? username };
+            _apiToken = null;
             return LoginResult.Success();
         }
         return LoginResult.Failure("Invalid credentials.");
@@ -86,12 +88,16 @@ public sealed class ApiClient : IDisposable
         var result = await PostTicketAsync(form, ct).ConfigureAwait(false);
         if (result?.Ticket is null || result.CsrfPreventionToken is null)
             return LoginResult.Failure("Invalid TOTP code.");
-        _ticket = new DataTicket { Ticket = result.Ticket, CsrfPreventionToken = result.CsrfPreventionToken, Username = result.Username ?? username };
+        _ticket   = new DataTicket { Ticket = result.Ticket, CsrfPreventionToken = result.CsrfPreventionToken, Username = result.Username ?? username };
+        _apiToken = null;
         return LoginResult.Success();
     }
 
     public async Task RenewTicketAsync(CancellationToken ct = default)
     {
+        // API tokens don't expire — nothing to renew
+        if (_apiToken is not null) return;
+
         EnsureAuthenticated();
         var form = new Dictionary<string, string>
         {
@@ -101,6 +107,52 @@ public sealed class ApiClient : IDisposable
         var result = await PostTicketAsync(form, ct).ConfigureAwait(false);
         if (result?.Ticket is not null && result.CsrfPreventionToken is not null)
             _ticket = new DataTicket { Ticket = result.Ticket, CsrfPreventionToken = result.CsrfPreventionToken, Username = result.Username ?? _ticket.Username };
+    }
+
+    // =========================================================================
+    // AUTH — API Token
+    // =========================================================================
+
+    /// <summary>
+    /// Authenticate using a Proxmox API token.
+    /// Format: "user@realm!tokenid" + secret, e.g. "root@pam!mytoken" + "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    /// Validates connectivity by calling /version.
+    /// </summary>
+    public async Task<LoginResult> LoginWithTokenAsync(
+        string tokenId, string secret, CancellationToken ct = default)
+    {
+        // Normalize: strip leading "PVEAPIToken=" if user pasted the full header value
+        tokenId = tokenId.Trim();
+        secret  = secret.Trim();
+        if (tokenId.StartsWith("PVEAPIToken=", StringComparison.OrdinalIgnoreCase))
+        {
+            var rest = tokenId["PVEAPIToken=".Length..];
+            var eq   = rest.IndexOf('=');
+            if (eq >= 0) { tokenId = rest[..eq]; secret = rest[(eq + 1)..]; }
+        }
+
+        // Basic format validation: must contain "@" and "!"
+        if (!tokenId.Contains('@') || !tokenId.Contains('!'))
+            return LoginResult.Failure("Invalid token ID format. Expected: user@realm!tokenid");
+        if (string.IsNullOrWhiteSpace(secret))
+            return LoginResult.Failure("Token secret cannot be empty.");
+
+        _apiToken = new ApiTokenCredential(tokenId, secret);
+        _ticket   = null;
+
+        // Verify by calling /version (no auth required, but lets us detect network issues)
+        // then call a protected endpoint to validate the token itself
+        try
+        {
+            var json = await GetAsync("nodes", ct).ConfigureAwait(false);
+            if (json == "403") { _apiToken = null; return LoginResult.Failure("Token rejected (403 Forbidden). Check token ID and secret."); }
+            return LoginResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _apiToken = null;
+            return LoginResult.Failure($"Cannot reach server: {ex.Message}");
+        }
     }
 
     // =========================================================================
@@ -169,6 +221,16 @@ public sealed class ApiClient : IDisposable
         if (resp?.Data is null) return null;
         var vncTicket  = Uri.EscapeDataString(resp.Data.Ticket ?? string.Empty);
         var vmName     = Uri.EscapeDataString(machine.Name);
+
+        // For token auth, use Authorization header approach via URL param
+        if (_apiToken is not null)
+        {
+            var authParam = Uri.EscapeDataString($"PVEAPIToken={_apiToken.TokenId}={_apiToken.Secret}");
+            return consoleType == "xtermjs"
+                ? $"https://{server}:{port}/?console=xtermjs&vmid={machine.Vmid}&vmname={vmName}&node={machine.NodeName}&resize=1&cmd="
+                : $"https://{server}:{port}/?console=kvm&novnc=1&vmid={machine.Vmid}&vmname={vmName}&node={machine.NodeName}&resize=scale&autoconnect=1&path=api2/json/nodes/{machine.NodeName}/{type}/{machine.Vmid}/vncwebsocket&vncticket={vncTicket}";
+        }
+
         var authTicket = Uri.EscapeDataString(_ticket!.Ticket);
         return consoleType == "xtermjs"
             ? $"https://{server}:{port}/?console=xtermjs&vmid={machine.Vmid}&vmname={vmName}&node={machine.NodeName}&resize=1&cmd=#pve_data=token_ticket={vncTicket}"
@@ -223,15 +285,25 @@ public sealed class ApiClient : IDisposable
         return JsonSerializer.Deserialize<PveResponse<TicketResponse>>(body, _json)?.Data;
     }
 
+    /// <summary>Adds the correct auth headers depending on auth mode (ticket or API token).</summary>
     private void AddAuthHeaders(HttpRequestMessage req, bool includeCsrf = false)
     {
-        req.Headers.TryAddWithoutValidation("Cookie", $"PVEAuthCookie={_ticket!.Ticket}");
-        if (includeCsrf) req.Headers.TryAddWithoutValidation("CSRFPreventionToken", _ticket.CsrfPreventionToken);
+        if (_apiToken is not null)
+        {
+            // API token: Authorization header only, no CSRF needed
+            req.Headers.TryAddWithoutValidation("Authorization", $"PVEAPIToken={_apiToken.TokenId}={_apiToken.Secret}");
+        }
+        else
+        {
+            req.Headers.TryAddWithoutValidation("Cookie", $"PVEAuthCookie={_ticket!.Ticket}");
+            if (includeCsrf) req.Headers.TryAddWithoutValidation("CSRFPreventionToken", _ticket.CsrfPreventionToken);
+        }
     }
 
     private void EnsureAuthenticated()
     {
-        if (_ticket is null) throw new InvalidOperationException("Not authenticated. Call LoginAsync() first.");
+        if (_ticket is null && _apiToken is null)
+            throw new InvalidOperationException("Not authenticated. Call LoginAsync() or LoginWithTokenAsync() first.");
     }
 
     public void Dispose()
