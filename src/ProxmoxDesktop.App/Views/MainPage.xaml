@@ -5,13 +5,14 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:ProxmoxDesktop.App.Controls"
     xmlns:models="using:ProxmoxDesktop.Core.Api.Models"
+    xmlns:vm="using:ProxmoxDesktop.App.ViewModels"
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Title bar -->
         <Grid Grid.Row="0" Background="{ThemeResource NavigationViewDefaultPaneBackground}"
-              Padding="16,8" ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
+              Padding="16,8" ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto">
 
             <!-- Logo + title -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -26,8 +27,15 @@
                             Text="{x:Bind ViewModel.SearchQuery, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             QueryIcon="Find" MaxWidth="400"/>
 
+            <!-- Group by node toggle -->
+            <ToggleButton Grid.Column="2" Margin="0,0,8,0"
+                          IsChecked="{x:Bind ViewModel.IsGroupedByNode, Mode=TwoWay}"
+                          ToolTipService.ToolTip="Group by node">
+                <FontIcon Glyph="&#xF168;" FontSize="16"/>
+            </ToggleButton>
+
             <!-- Theme toggle -->
-            <Button Grid.Column="2" Margin="0,0,8,0"
+            <Button Grid.Column="3" Margin="0,0,8,0"
                     x:Name="ThemeToggleButton"
                     Click="OnThemeToggleClick"
                     ToolTipService.ToolTip="Toggle dark/light mode">
@@ -35,19 +43,19 @@
             </Button>
 
             <!-- Refresh -->
-            <Button Grid.Column="3" Margin="0,0,8,0"
+            <Button Grid.Column="4" Margin="0,0,8,0"
                     Command="{x:Bind ViewModel.RefreshCommand}"
                     ToolTipService.ToolTip="Refresh">
                 <FontIcon Glyph="&#xE72C;" FontSize="16"/>
             </Button>
 
             <!-- ProgressRing -->
-            <ProgressRing Grid.Column="4" Margin="0,0,8,0"
+            <ProgressRing Grid.Column="5" Margin="0,0,8,0"
                           IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
                           Width="20" Height="20"/>
 
             <!-- Logout -->
-            <Button Grid.Column="5"
+            <Button Grid.Column="6"
                     Command="{x:Bind ViewModel.LogoutCommand}"
                     ToolTipService.ToolTip="Logout">
                 <FontIcon Glyph="&#xF3B1;" FontSize="16"/>
@@ -61,25 +69,77 @@
                  Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
                  IsClosable="True"/>
 
-        <!-- Machine grid -->
+        <!-- Content: flat grid or grouped by node -->
         <ScrollViewer Grid.Row="2" Padding="16">
+
+            <!-- Flat view (default) -->
             <ItemsView x:Name="MachineGrid"
-                       ItemsSource="{x:Bind ViewModel.FilteredMachines, Mode=OneWay}"
+                       Visibility="{x:Bind ViewModel.IsGroupedByNode, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}"
+                       ItemsSource="{x:Bind ViewModel.GroupedMachines, Mode=OneWay}"
                        SelectionMode="None">
-                <ItemsView.Layout>
-                    <UniformGridLayout
-                        MinItemWidth="180"
-                        MinItemHeight="200"
-                        ItemsStretch="Fill"
-                        MinColumnSpacing="12"
-                        MinRowSpacing="12"/>
-                </ItemsView.Layout>
                 <ItemsView.ItemTemplate>
-                    <DataTemplate x:DataType="models:MachineData">
-                        <controls:MachineCard Machine="{x:Bind}"/>
+                    <DataTemplate x:DataType="vm:NodeGroup">
+                        <!-- Flat: show all machines from all groups in a single grid -->
+                        <ItemsControl ItemsSource="{x:Bind Machines}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:MachineData">
+                                    <controls:MachineCard Machine="{x:Bind}" Margin="6"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </DataTemplate>
                 </ItemsView.ItemTemplate>
             </ItemsView>
+
+            <!-- Grouped view -->
+            <ItemsControl x:Name="GroupedView"
+                          Visibility="{x:Bind ViewModel.IsGroupedByNode, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                          ItemsSource="{x:Bind ViewModel.GroupedMachines, Mode=OneWay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:NodeGroup">
+                        <StackPanel Margin="0,0,0,24">
+
+                            <!-- Node header -->
+                            <Grid Margin="0,0,0,12" ColumnDefinitions="Auto,*,Auto">
+                                <FontIcon Grid.Column="0" Glyph="&#xECA5;" FontSize="16"
+                                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                          Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="{x:Bind NodeName}"
+                                           Style="{StaticResource SubtitleTextBlockStyle}"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="2"
+                                           Text="{x:Bind Summary}"
+                                           FontSize="12"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+
+                            <!-- Machines for this node -->
+                            <ItemsControl ItemsSource="{x:Bind Machines}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="models:MachineData">
+                                        <controls:MachineCard Machine="{x:Bind}" Margin="0,0,12,12"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <NavigationViewItemSeparator Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
         </ScrollViewer>
     </Grid>
 </Page>
