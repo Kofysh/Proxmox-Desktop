@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using ProxmoxDesktop.App.ViewModels;
@@ -27,6 +28,7 @@ public sealed partial class MainPage : Page
         ViewModel.OnOpenSpice  += OpenSpice;
 
         Bindings.Update();
+        UpdateThemeIcon();
         await ViewModel.RefreshAsync();
     }
 
@@ -34,6 +36,24 @@ public sealed partial class MainPage : Page
     {
         base.OnNavigatedFrom(e);
         ViewModel?.Dispose();
+    }
+
+    private void OnThemeToggleClick(object sender, RoutedEventArgs e)
+    {
+        if (MainWindow.Instance is { } win)
+        {
+            win.ToggleTheme();
+            UpdateThemeIcon();
+        }
+    }
+
+    private void UpdateThemeIcon()
+    {
+        if (MainWindow.Instance is not { } win) return;
+        // Moon = dark mode active, Sun = light mode active
+        ThemeIcon.Glyph = win.CurrentTheme == ElementTheme.Dark
+            ? "\uE706"   // Sun — click to switch to light
+            : "\uE708";  // Moon — click to switch to dark
     }
 
     private void OpenConsole(MachineData machine, string url)
@@ -47,7 +67,6 @@ public sealed partial class MainPage : Page
 
     private async void OpenSpice(SpiceObject spiceConfig)
     {
-        // Lance virt-viewer via le SpiceLauncher (logique identique à l'ancienne app)
         await ProxmoxDesktop.Core.Console.SpiceLauncher.LaunchAsync(spiceConfig);
     }
 }
