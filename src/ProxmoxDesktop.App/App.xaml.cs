@@ -1,4 +1,5 @@
 using Microsoft.UI.Xaml;
+using ProxmoxDesktop.App.Services;
 using ProxmoxDesktop.App.Views;
 
 namespace ProxmoxDesktop.App;
@@ -11,6 +12,8 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
+        NotificationService.Register();
+
         MainWindow = new MainWindow();
         MainWindow.Activate();
     }

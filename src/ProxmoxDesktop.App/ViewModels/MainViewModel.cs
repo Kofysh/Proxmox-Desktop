@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ProxmoxDesktop.App.Services;
 using ProxmoxDesktop.Core.Api;
 using ProxmoxDesktop.Core.Api.Models;
 
@@ -12,6 +13,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private readonly PeriodicTimer _refreshTimer;
     private readonly PeriodicTimer _ticketTimer;
     private CancellationTokenSource _cts = new();
+
+    // Track previous statuses to detect changes
+    private Dictionary<int, string> _previousStatuses = [];
 
     // -------------------------------------------------------------------------
     // State
@@ -77,6 +81,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
         try
         {
             var all = await _api.GetAllMachinesAsync(ct);
+
+            // Detect state changes before updating the list
+            // Skip notifications on first load (_previousStatuses is empty)
+            bool isFirstLoad = _previousStatuses.Count == 0;
+
+            foreach (var m in all)
+            {
+                if (!isFirstLoad &&
+                    _previousStatuses.TryGetValue(m.Vmid, out var prevStatus) &&
+                    prevStatus != m.Status)
+                {
+                    NotificationService.NotifyStateChange(m.Name, m.Vmid, prevStatus, m.Status);
+                }
+            }
+
+            // Update status snapshot
+            _previousStatuses = all.ToDictionary(m => m.Vmid, m => m.Status);
+
+            // Differential update of the observable collection
             var existing = Machines.ToDictionary(m => m.Vmid);
             foreach (var m in all)
             {
@@ -89,6 +112,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             }
             var toRemove = Machines.Where(m => all.All(a => a.Vmid != m.Vmid)).ToList();
             foreach (var m in toRemove) Machines.Remove(m);
+
             ApplyFilter();
         }
         catch (OperationCanceledException) { }
@@ -183,7 +207,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
 public record PowerActionArgs(MachineData Machine, string Action, bool Extra = false);
 public record ConsoleArgs(MachineData Machine, string ConsoleType);
 
-/// <summary>A named group of machines belonging to the same Proxmox node.</summary>
 public sealed class NodeGroup(string nodeName, ObservableCollection<MachineData> machines)
 {
     public string NodeName { get; } = nodeName;
