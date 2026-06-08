@@ -3,38 +3,63 @@ using System.Text.Json;
 
 namespace ProxmoxDesktop.Config;
 
+/// <summary>
+/// Persists <see cref="AppConfig"/> to %AppData%/ProxmoxDesktop/config.json.
+/// Sensitive values (token secret) are stored via Windows DPAPI.
+/// </summary>
 public sealed class ConfigurationService
 {
-    private static readonly string _path = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "ProxmoxDesktop", "config.json");
+    private static readonly string ConfigDir =
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ProxmoxDesktop");
+    private static readonly string ConfigPath = Path.Combine(ConfigDir, "config.json");
 
-    private Dictionary<string, JsonElement> _data = [];
+    private static readonly JsonSerializerOptions _opts = new() { WriteIndented = true };
+
+    public AppConfig Config { get; private set; } = new();
 
     public ConfigurationService() => Load();
 
-    private void Load()
+    public void Load()
     {
         try
         {
-            if (File.Exists(_path))
-                _data = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(File.ReadAllText(_path)) ?? [];
+            if (File.Exists(ConfigPath))
+                Config = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(ConfigPath)) ?? new();
         }
-        catch { _data = []; }
+        catch { Config = new(); }
     }
-
-    public T? Get<T>(string key)
-    {
-        if (!_data.TryGetValue(key, out var el)) return default;
-        try { return el.Deserialize<T>(); } catch { return default; }
-    }
-
-    public void Set<T>(string key, T value)
-        => _data[key] = JsonSerializer.SerializeToElement(value);
 
     public void Save()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
-        File.WriteAllText(_path, JsonSerializer.Serialize(_data, new JsonSerializerOptions { WriteIndented = true }));
+        try
+        {
+            Directory.CreateDirectory(ConfigDir);
+            File.WriteAllText(ConfigPath, JsonSerializer.Serialize(Config, _opts));
+        }
+        catch { /* non-critical */ }
+    }
+
+    /// <summary>Protects <paramref name="plaintext"/> using Windows DPAPI (current user scope).</summary>
+    public static string? ProtectSecret(string? plaintext)
+    {
+        if (string.IsNullOrEmpty(plaintext)) return null;
+        var bytes     = System.Text.Encoding.UTF8.GetBytes(plaintext);
+        var encrypted = System.Security.Cryptography.ProtectedData.Protect(
+            bytes, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
+        return Convert.ToBase64String(encrypted);
+    }
+
+    /// <summary>Decrypts a DPAPI-protected value.</summary>
+    public static string? UnprotectSecret(string? ciphertext)
+    {
+        if (string.IsNullOrEmpty(ciphertext)) return null;
+        try
+        {
+            var bytes     = Convert.FromBase64String(ciphertext);
+            var decrypted = System.Security.Cryptography.ProtectedData.Unprotect(
+                bytes, null, System.Security.Cryptography.DataProtectionScope.CurrentUser);
+            return System.Text.Encoding.UTF8.GetString(decrypted);
+        }
+        catch { return null; }
     }
 }
