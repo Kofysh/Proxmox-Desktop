@@ -18,13 +18,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial ObservableCollection<MachineData> Machines         { get; set; } = [];
     [ObservableProperty] public partial ObservableCollection<NodeGroup>   GroupedMachines  { get; set; } = [];
     [ObservableProperty] public partial ObservableCollection<MachineData> FilteredMachines { get; set; } = [];
-    [ObservableProperty] public partial bool    IsLoading       { get; set; }
-    [ObservableProperty] public partial string  SearchQuery     { get; set; } = string.Empty;
-    [ObservableProperty] public partial string? StatusMessage   { get; set; }
-    [ObservableProperty] public partial bool    IsGroupedByNode { get; set; }
+    [ObservableProperty] public partial ObservableCollection<string>      NodeList         { get; set; } = [];
+    [ObservableProperty] public partial bool    IsLoading        { get; set; }
+    [ObservableProperty] public partial string  SearchQuery      { get; set; } = string.Empty;
+    [ObservableProperty] public partial string? StatusMessage    { get; set; }
+    [ObservableProperty] public partial bool    IsGroupedByNode  { get; set; }
+    [ObservableProperty] public partial string? SelectedNode     { get; set; }
+
+    // Dashboard stats
+    [ObservableProperty] public partial int TotalCount   { get; set; }
+    [ObservableProperty] public partial int RunningCount { get; set; }
+    [ObservableProperty] public partial int StoppedCount { get; set; }
+    [ObservableProperty] public partial int VmCount      { get; set; }
+    [ObservableProperty] public partial int LxcCount     { get; set; }
 
     partial void OnSearchQueryChanged(string _)   => ApplyFilter();
     partial void OnIsGroupedByNodeChanged(bool _) => ApplyFilter();
+    partial void OnSelectedNodeChanged(string? _) => ApplyFilter();
 
     public MainViewModel(ApiClient api)
     {
@@ -47,10 +57,23 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     if (_previousStatuses.TryGetValue(m.Vmid, out var prev) && prev != m.Status)
                         NotificationService.NotifyStateChange(m.Name, m.Vmid, prev, m.Status);
             _previousStatuses = all.ToDictionary(m => m.Vmid, m => m.Status);
+
             System.Windows.Application.Current.Dispatcher.Invoke(() =>
             {
                 Machines.Clear();
                 foreach (var m in all) Machines.Add(m);
+
+                // Update node list
+                var nodes = all.Select(m => m.NodeName).Distinct().OrderBy(n => n).ToList();
+                NodeList.Clear();
+                foreach (var n in nodes) NodeList.Add(n);
+
+                // Update stats
+                TotalCount   = all.Count;
+                RunningCount = all.Count(m => m.IsRunning);
+                StoppedCount = all.Count(m => !m.IsRunning);
+                VmCount      = all.Count(m => !m.IsLxc);
+                LxcCount     = all.Count(m => m.IsLxc);
             });
             ApplyFilter();
         }
@@ -71,15 +94,30 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand] public async Task OpenConsoleAsync(ConsoleArgs args) { var url = await _api.GetConsoleUrlAsync(args.Machine, args.ConsoleType); if (url is not null) OnOpenConsole?.Invoke(args.Machine, url); }
     [RelayCommand] public async Task OpenSpiceAsync(MachineData machine) { var cfg = await _api.GetSpiceConfigAsync(machine); if (cfg is not null) OnOpenSpice?.Invoke(cfg); }
     [RelayCommand] public void Logout() => OnLogout?.Invoke();
+    [RelayCommand] public void ClearNodeFilter() => SelectedNode = null;
 
     private void ApplyFilter()
     {
         var q = SearchQuery.Trim().ToLowerInvariant();
-        var filtered = (string.IsNullOrEmpty(q) ? Machines : Machines.Where(m => m.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || m.Vmid.ToString().Contains(q) || m.NodeName.Contains(q, StringComparison.OrdinalIgnoreCase))).ToList();
+        var source = Machines.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(SelectedNode))
+            source = source.Where(m => m.NodeName == SelectedNode);
+
+        if (!string.IsNullOrEmpty(q))
+            source = source.Where(m =>
+                m.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                m.Vmid.ToString().Contains(q) ||
+                m.NodeName.Contains(q, StringComparison.OrdinalIgnoreCase));
+
+        var filtered = source.ToList();
         System.Windows.Application.Current.Dispatcher.Invoke(() =>
         {
             FilteredMachines = new ObservableCollection<MachineData>(filtered);
-            GroupedMachines  = new ObservableCollection<NodeGroup>(filtered.GroupBy(m => m.NodeName).OrderBy(g => g.Key).Select(g => new NodeGroup(g.Key, new ObservableCollection<MachineData>(g.OrderBy(m => m.Vmid)))));
+            GroupedMachines  = new ObservableCollection<NodeGroup>(
+                filtered.GroupBy(m => m.NodeName)
+                        .OrderBy(g => g.Key)
+                        .Select(g => new NodeGroup(g.Key, new ObservableCollection<MachineData>(g.OrderBy(m => m.Vmid)))));
         });
     }
 

@@ -45,3 +45,11 @@ public sealed class CpuPercentConverter : IValueConverter
         => value is double d ? $"{d * 100:F1}%" : "0%";
     public object ConvertBack(object? v, Type t, object? p, CultureInfo l) => throw new NotImplementedException();
 }
+
+/// <summary>Inverse bool to Visibility — supports ConverterParameter=inverse for normal direction</summary>
+public sealed class BoolToInverseVisibilityConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo l)
+        => value is true ? Visibility.Collapsed : Visibility.Visible;
+    public object ConvertBack(object? v, Type t, object? p, CultureInfo l) => throw new NotImplementedException();
+}

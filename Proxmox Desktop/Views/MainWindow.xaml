@@ -8,7 +8,7 @@
     xmlns:controls="clr-namespace:ProxmoxDesktop.Controls"
     xmlns:converters="clr-namespace:ProxmoxDesktop.Converters"
     Title="Proxmox Desktop"
-    MinWidth="900" MinHeight="600" Width="1280" Height="780"
+    MinWidth="960" MinHeight="640" Width="1360" Height="820"
     WindowStartupLocation="CenterScreen"
     Background="{DynamicResource MaterialDesign.Brush.Background}"
     TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
@@ -19,51 +19,136 @@
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
         <BooleanToVisibilityConverter               x:Key="BoolToVisibility"/>
         <converters:StatusToBrushConverter          x:Key="StatusToBrush"/>
+
+        <!-- Node sidebar item style -->
+        <Style x:Key="NodeItem" TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin"  Value="4,2"/>
+            <Setter Property="md:ButtonAssist.CornerRadius" Value="8"/>
+        </Style>
     </Window.Resources>
+
     <md:DialogHost Identifier="MainDialog">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>  <!-- TopBar -->
+                <RowDefinition Height="Auto"/>  <!-- StatsBar -->
+                <RowDefinition Height="Auto"/>  <!-- ProgressBar -->
+                <RowDefinition Height="*"/>     <!-- Content -->
+                <RowDefinition Height="Auto"/>  <!-- Snackbar -->
             </Grid.RowDefinitions>
+
+            <!-- ══ TOP BAR ══ -->
             <md:ColorZone Grid.Row="0" Mode="PrimaryMid" Padding="12,8">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                         <Image Source="/Assets/proxmox.png" Width="28" Height="28" Margin="0,0,10,0"/>
-                        <TextBlock Text="Proxmox Desktop" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="Medium" VerticalAlignment="Center"/>
+                        <TextBlock Text="Proxmox Desktop" Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   FontWeight="Medium" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <ToggleButton Style="{StaticResource MaterialDesignFlatToggleButton}" IsChecked="{Binding IsGroupedByNode}" ToolTip="Group by node" Foreground="White">
-                            <md:PackIcon Kind="ViewGrid" Width="20" Height="20"/>
-                        </ToggleButton>
-                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Click="OnThemeToggle" ToolTip="Toggle theme" Foreground="White">
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Click="OnThemeToggle"
+                                ToolTip="Toggle theme" Foreground="White">
                             <md:PackIcon x:Name="ThemeIcon" Kind="WeatherNight" Width="20" Height="20"/>
                         </Button>
-                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Command="{Binding RefreshCommand}" ToolTip="Refresh" Foreground="White">
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Command="{Binding RefreshCommand}"
+                                ToolTip="Refresh" Foreground="White">
                             <md:PackIcon Kind="Refresh" Width="20" Height="20"/>
                         </Button>
                         <Separator Margin="4,0"/>
-                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Command="{Binding LogoutCommand}" ToolTip="Logout" Foreground="White">
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Command="{Binding LogoutCommand}"
+                                ToolTip="Logout" Foreground="White">
                             <md:PackIcon Kind="Logout" Width="20" Height="20"/>
                         </Button>
                     </StackPanel>
-                    <TextBox Margin="24,0" md:HintAssist.Hint="Search VMs and containers..." md:TextFieldAssist.HasLeadingIcon="True" md:TextFieldAssist.LeadingIcon="Magnify"
-                             Style="{StaticResource MaterialDesignOutlinedTextBox}" md:TextFieldAssist.TextFieldCornerRadius="20"
-                             Foreground="White" md:HintAssist.Foreground="#AAFFFFFF" Background="#22FFFFFF" BorderBrush="#44FFFFFF"
-                             CaretBrush="White" MaxWidth="380"
-                             Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
+                    <!-- Search -->
+                    <TextBox Margin="24,0"
+                             md:HintAssist.Hint="Search VMs and containers..."
+                             md:TextFieldAssist.HasLeadingIcon="True"
+                             md:TextFieldAssist.LeadingIcon="Magnify"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             md:TextFieldAssist.TextFieldCornerRadius="20"
+                             Foreground="White" md:HintAssist.Foreground="#AAFFFFFF"
+                             Background="#22FFFFFF" BorderBrush="#44FFFFFF" CaretBrush="White"
+                             MaxWidth="380"
+                             Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"
+                             VerticalAlignment="Center"/>
                 </DockPanel>
             </md:ColorZone>
-            <ProgressBar Grid.Row="1" IsIndeterminate="True" Height="3" Style="{StaticResource MaterialDesignLinearProgressBar}" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"/>
-            <ScrollViewer Grid.Row="2" Padding="16" VerticalScrollBarVisibility="Auto">
-                <ItemsControl ItemsSource="{Binding FilteredMachines}" Visibility="{Binding IsGroupedByNode, Converter={StaticResource InverseBoolToVisibility}}">
-                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate><DataTemplate DataType="{x:Type models:MachineData}"><controls:MachineCard Machine="{Binding}" Margin="0,0,12,12"/></DataTemplate></ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
-            <md:Snackbar Grid.Row="3" x:Name="MainSnackbar" MessageQueue="{md:MessageQueue}"/>
+
+            <!-- ══ STATS BAR ══ -->
+            <controls:StatsBar Grid.Row="1"
+                               TotalCount="{Binding TotalCount}"
+                               RunningCount="{Binding RunningCount}"
+                               StoppedCount="{Binding StoppedCount}"
+                               VmCount="{Binding VmCount}"
+                               LxcCount="{Binding LxcCount}"/>
+
+            <!-- ══ LOADING BAR ══ -->
+            <ProgressBar Grid.Row="2" IsIndeterminate="True" Height="3"
+                         Style="{StaticResource MaterialDesignLinearProgressBar}"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- ══ MAIN CONTENT ══ -->
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200"/>  <!-- Sidebar -->
+                    <ColumnDefinition Width="*"/>    <!-- VM Grid -->
+                </Grid.ColumnDefinitions>
+
+                <!-- SIDEBAR -->
+                <Border Grid.Column="0"
+                        BorderThickness="0,0,1,0"
+                        BorderBrush="{DynamicResource MaterialDesign.Brush.TextBox.HoverBackground}">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="NODES"
+                                   Style="{StaticResource MaterialDesignOverlineTextBlock}"
+                                   Margin="16,12,0,6" Opacity="0.5"/>
+                        <Button DockPanel.Dock="Top"
+                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Command="{Binding ClearNodeFilterCommand}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Margin="4,0,4,4" Padding="12,6"
+                                md:ButtonAssist.CornerRadius="8">
+                            <StackPanel Orientation="Horizontal">
+                                <md:PackIcon Kind="ServerNetwork" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="All nodes" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <ListBox ItemsSource="{Binding NodeList}"
+                                 SelectedItem="{Binding SelectedNode}"
+                                 ItemContainerStyle="{StaticResource NodeItem}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <md:PackIcon Kind="Server" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7"/>
+                                        <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </Border>
+
+                <!-- VM GRID -->
+                <ScrollViewer Grid.Column="1" Padding="16" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl ItemsSource="{Binding FilteredMachines}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type models:MachineData}">
+                                <controls:MachineCard Machine="{Binding}" Margin="0,0,12,12"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- ══ SNACKBAR ══ -->
+            <md:Snackbar Grid.Row="4" x:Name="MainSnackbar" MessageQueue="{md:MessageQueue}"/>
         </Grid>
     </md:DialogHost>
 </Window>
