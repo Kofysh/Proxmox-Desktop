@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Client Windows natif pour Proxmox VE — WPF · .NET 9 · Material Design · MVVM**
+**Native Windows client for Proxmox VE &mdash; WPF &middot; .NET 9 &middot; Material Design &middot; MVVM**
 
 [![Build](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/build.yml/badge.svg)](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/build.yml)
 [![Release](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/release.yml/badge.svg)](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/release.yml)
@@ -19,58 +19,58 @@
 
 ---
 
-## Vue d'ensemble
+## Overview
 
-**Proxmox Desktop** est un client Windows natif pour Proxmox VE. Il donne un accès rapide à toutes vos machines virtuelles et conteneurs LXC d'un cluster, sans passer par le WebGUI — directement depuis votre bureau Windows.
+**Proxmox Desktop** is a native Windows client for Proxmox VE. It gives quick access to all your virtual machines and LXC containers across a cluster, without going through the WebGUI &mdash; directly from your Windows desktop.
 
-Basé sur **WPF** avec **Material Design**, une architecture **MVVM** (CommunityToolkit), et un client HTTP entièrement async avec retry automatique.
-
----
-
-## Fonctionnalités
-
-- 🖥️ **Dashboard VM/LXC** — Vue en grille de toutes les machines avec statut temps réel, CPU%, RAM%, uptime
-- 📊 **Barre de stats** — Total / Running / Stopped / VMs / LXC en un coup d'œil
-- 🗂️ **Sidebar nodes** — Filtrage par node d'un clic
-- 🔍 **Recherche** — Filtrage par nom, VMID ou node
-- 🖥️ **Console intégrée** — NoVNC, xTermJS et SPICE (Virt-Viewer)
-- ⚡ **Contrôle d'alimentation** — Start / Shutdown / Reboot / Suspend / Hibernate / Force Stop / Reset
-- 🔐 **Double authentification** — Login classique + TOTP, ou API Token Proxmox
-- 🔔 **Notifications Windows** — Toast natif lors des changements d'état VM
-- 🔄 **Auto-refresh** — Toutes les 60 secondes, ticket renouvelé automatiquement toutes les 90 min
-- 🌙 **Thème sombre/clair** — Toggle en un clic
+Built with **WPF** and **Material Design**, using an **MVVM** architecture (CommunityToolkit) and a fully async HTTP client with automatic retry.
 
 ---
 
-## Captures d'écran
+## Features
 
-| Login | Dashboard | Carte VM |
-|-------|-----------|----------|
+- 🖥️ **VM/LXC Dashboard** &mdash; Grid view of all machines with real-time status, CPU%, RAM%, uptime
+- 📊 **Stats bar** &mdash; Total / Running / Stopped / VMs / LXC at a glance
+- 🗂️ **Node sidebar** &mdash; Filter by node with a single click
+- 🔍 **Search** &mdash; Filter by name, VMID or node
+- 🖥️ **Integrated console** &mdash; NoVNC, xTermJS and SPICE (Virt-Viewer)
+- ⚡ **Power control** &mdash; Start / Shutdown / Reboot / Suspend / Hibernate / Force Stop / Reset
+- 🔐 **Dual authentication** &mdash; Classic login + TOTP, or Proxmox API Token
+- 🔔 **Windows notifications** &mdash; Native toast on VM state changes
+- 🔄 **Auto-refresh** &mdash; Every 60 seconds, ticket renewed automatically every 90 min
+- 🌙 **Dark / Light theme** &mdash; Toggle in one click
+
+---
+
+## Screenshots
+
+| Login | Dashboard | VM Card |
+|-------|-----------|--------|
 | ![Login](Screenshots/Capture-1.PNG) | ![Dashboard](Screenshots/Capture-2.PNG) | ![Card](Screenshots/Capture-3.PNG) |
 
 ---
 
-## Prérequis
+## Requirements
 
-| Composant | Version | Lien |
+| Component | Version | Link |
 |-----------|---------|------|
-| Windows | 10 (build 17763+) ou 11 | — |
-| WebView2 Runtime | Dernière *(pré-installé sur Win 11)* | [microsoft.com/edge/webview2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) |
-| Virt-Viewer + UsbDk *(SPICE uniquement)* | Dernière | [spice-space.org](https://www.spice-space.org/download.html) |
+| Windows | 10 (build 17763+) or 11 | &mdash; |
+| WebView2 Runtime | Latest *(pre-installed on Windows 11)* | [microsoft.com/edge/webview2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) |
+| Virt-Viewer + UsbDk *(SPICE only)* | Latest | [spice-space.org](https://www.spice-space.org/download.html) |
 
-> **Aucune installation de .NET requise.** L'application est self-contained (runtime inclus dans le ZIP).
+> **.NET runtime is bundled.** No separate .NET installation required &mdash; the app is self-contained.
 
 ---
 
 ## Installation
 
-### Depuis les releases
+### From releases
 
-1. Télécharger le dernier `.zip` depuis la page [Releases](../../releases)
-2. Extraire n'importe où
-3. Lancer `ProxmoxDesktop.exe`
+1. Download the latest `.zip` from the [Releases](../../releases) page
+2. Extract anywhere
+3. Run `ProxmoxDesktop.exe`
 
-### Depuis les sources
+### From source
 
 ```bash
 git clone https://github.com/Kofysh/Proxmox-Desktop.git
@@ -82,36 +82,36 @@ dotnet build -c Release
 
 ## Configuration
 
-Au premier lancement, renseigner :
+On first launch, fill in:
 
-| Champ | Description | Exemple |
+| Field | Description | Example |
 |-------|-------------|---------|
-| **Serveur** | IP ou hostname Proxmox | `192.168.1.10` |
-| **Port** | Port API (défaut 8006) | `8006` |
-| **Username** | Utilisateur Proxmox | `root` |
-| **Realm** | Sélectionné depuis la liste | `pam` |
-| **Password** | Mot de passe + TOTP si activé | — |
-| **Ignorer SSL** | Pour les certificats auto-signés | ✓ homelab |
+| **Server** | Proxmox IP or hostname | `192.168.1.10` |
+| **Port** | API port (default 8006) | `8006` |
+| **Username** | Proxmox user | `root` |
+| **Realm** | Selected from the list | `pam` |
+| **Password** | Password + TOTP if enabled | &mdash; |
+| **Skip SSL** | For self-signed certificates | &check; homelab |
 
-**Ou via API Token :**
+**Or via API Token:**
 
 ```
 PVEAPIToken=user@realm!tokenid=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-Les identifiants sont sauvegardés dans `%AppData%\ProxmoxDesktop\config.json`. Le secret du token est chiffré via **Windows DPAPI**.
+Credentials are saved to `%AppData%\ProxmoxDesktop\config.json`. The token secret is encrypted using **Windows DPAPI**.
 
 ---
 
-## Permissions Proxmox minimales
+## Minimum Proxmox Permissions
 
-Pour un compte dédié avec les droits minimaux :
+For a dedicated account with minimal rights:
 
 | Permission | Usage |
 |---|---|
-| `VM.Audit` | Lister et afficher les VMs |
-| `VM.Console` | Accès console (NoVNC, xTermJS, SPICE) |
-| `VM.PowerMgmt` | Contrôle d'alimentation |
+| `VM.Audit` | List and display VMs |
+| `VM.Console` | Console access (NoVNC, xTermJS, SPICE) |
+| `VM.PowerMgmt` | Power control |
 
 ---
 
@@ -119,25 +119,25 @@ Pour un compte dédié avec les droits minimaux :
 
 ```
 Proxmox-Desktop/
-├── Proxmox Desktop/               # Projet WPF principal
+├── Proxmox Desktop/               # Main WPF project
 │   ├── Api/
-│   │   ├── IApiClient.cs          # Interface (testable)
-│   │   ├── ApiClient.cs           # Client HTTP async + retry
-│   │   ├── ServerInfo.cs          # Record de connexion
-│   │   ├── Internal/              # Types internes PVE
-│   │   └── Models/                # MachineData, NodeData, LoginResult…
+│   │   ├── IApiClient.cs          # Interface (mockable for tests)
+│   │   ├── ApiClient.cs           # Async HTTP client + retry
+│   │   ├── ServerInfo.cs          # Connection record
+│   │   ├── Internal/              # Internal PVE response types
+│   │   └── Models/                # MachineData, NodeData, LoginResult...
 │   ├── Config/
-│   │   ├── AppConfig.cs           # Config typée
-│   │   └── ConfigurationService.cs # Persistance JSON + DPAPI
+│   │   ├── AppConfig.cs           # Strongly-typed config
+│   │   └── ConfigurationService.cs # JSON persistence + DPAPI
 │   ├── Console/
-│   │   └── SpiceLauncher.cs       # Lancement Virt-Viewer
+│   │   └── SpiceLauncher.cs       # Virt-Viewer launcher
 │   ├── Controls/
-│   │   ├── MachineCard.xaml       # Carte VM/LXC
-│   │   └── StatsBar.xaml          # Barre de stats dashboard
-│   ├── Converters/                # StatusToBrush, BytesToReadable…
+│   │   ├── MachineCard.xaml       # VM/LXC card
+│   │   └── StatsBar.xaml          # Dashboard stats bar
+│   ├── Converters/                # StatusToBrush, BytesToReadable...
 │   ├── Helpers/                   # VisualTreeHelperExtensions
 │   ├── Services/
-│   │   └── NotificationService.cs # Windows Toast natif
+│   │   └── NotificationService.cs # Native Windows Toast
 │   ├── ViewModels/
 │   │   ├── LoginViewModel.cs
 │   │   └── MainViewModel.cs
@@ -151,52 +151,52 @@ Proxmox-Desktop/
 ├── Resources/
 ├── ProxmoxDesktop.sln
 └── .github/workflows/
-    ├── build.yml                  # Build sur chaque push/PR
-    └── release.yml                # Release sur tag v*
+    ├── build.yml                  # Build on every push / PR
+    └── release.yml                # Release on v* tag
 ```
 
-**Stack technique :**
-- UI : WPF + [MaterialDesignThemes 5.1](https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit)
-- Architecture : MVVM — [CommunityToolkit.Mvvm 8.4](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
-- Web console : WebView2
-- HTTP : `HttpClient` fully async/await + retry
-- Notifications : `Microsoft.Toolkit.Uwp.Notifications`
-- Sérialisation : `System.Text.Json`
-- Secrets : Windows DPAPI
+**Tech stack:**
+- UI: WPF + [MaterialDesignThemes 5.1](https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit)
+- Architecture: MVVM &mdash; [CommunityToolkit.Mvvm 8.4](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
+- Web console: WebView2
+- HTTP: `HttpClient` fully async/await + retry
+- Notifications: `Microsoft.Toolkit.Uwp.Notifications`
+- Serialization: `System.Text.Json`
+- Secrets: Windows DPAPI
 
 ---
 
 ## Roadmap
 
-- [x] API Token Proxmox
-- [x] Métriques CPU% / RAM% sur chaque carte
-- [x] Filtrage/recherche par nom ou VMID
-- [x] Regroupement par node
-- [x] Notifications Windows Toast
-- [x] Thème sombre/clair
-- [ ] Support multi-serveur (plusieurs clusters Proxmox)
-- [ ] Vue liste en plus de la vue grille
-- [ ] Tags Proxmox affichés sur les cartes
-- [ ] Logs / historique des actions
+- [x] Proxmox API Token support
+- [x] CPU% / RAM% metrics on each card
+- [x] Filter / search by name or VMID
+- [x] Group by node
+- [x] Windows Toast notifications
+- [x] Dark / Light theme
+- [ ] Multi-server support (multiple Proxmox clusters)
+- [ ] List view in addition to grid view
+- [ ] Proxmox tags displayed on cards
+- [ ] Action history / logs
 
 ---
 
-## Contribuer
+## Contributing
 
-Les contributions sont les bienvenues. Pour proposer une fonctionnalité ou signaler un bug :
+Contributions are welcome. To propose a feature or report a bug:
 
-1. Ouvrir une [Issue](../../issues)
-2. Forker le repo et créer une branche `feature/nom` ou `fix/nom`
-3. Soumettre une Pull Request vers `master`
-
----
-
-## Crédits
-
-Forké et réécrit depuis [sakakun/Proxmox-Desktop](https://github.com/sakakun/Proxmox-Desktop) (app WinForms originale par Matthew Bate).
+1. Open an [Issue](../../issues)
+2. Fork the repo and create a `feature/name` or `fix/name` branch
+3. Submit a Pull Request targeting `master`
 
 ---
 
-## Licence
+## Credits
+
+Forked and rewritten from [sakakun/Proxmox-Desktop](https://github.com/sakakun/Proxmox-Desktop) (original WinForms app by Matthew Bate).
+
+---
+
+## License
 
 [MIT](LICENSE)

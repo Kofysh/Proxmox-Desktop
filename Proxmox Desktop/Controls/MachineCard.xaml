@@ -10,8 +10,8 @@
         <converters:CpuPercentConverter      x:Key="CpuPercent"/>
         <BooleanToVisibilityConverter        x:Key="BoolToVisibility"/>
         <Style x:Key="ActionBtn" TargetType="Button" BasedOn="{StaticResource MaterialDesignIconForegroundButton}">
-            <Setter Property="Width"  Value="32"/>
-            <Setter Property="Height" Value="32"/>
+            <Setter Property="Width"   Value="32"/>
+            <Setter Property="Height"  Value="32"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="md:ButtonAssist.CornerRadius" Value="16"/>
         </Style>
@@ -20,18 +20,18 @@
     <md:Card Width="220" UniformCornerRadius="12" md:ElevationAssist.Elevation="Dp3" Cursor="Hand">
         <md:Card.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="NoVNC"   Command="{Binding OpenNoVncCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=MonitorEye}"/>
-                <MenuItem Header="xTermJS" Command="{Binding OpenXtermCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Console}"/>
-                <MenuItem Header="SPICE"   Command="{Binding OpenSpiceCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Desktopclassic}"/>
+                <MenuItem Header="NoVNC"      Command="{Binding OpenNoVncCommand,   RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=MonitorEye}"/>
+                <MenuItem Header="xTermJS"    Command="{Binding OpenXtermCommand,   RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Console}"/>
+                <MenuItem Header="SPICE"      Command="{Binding OpenSpiceCommand,   RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Desktopclassic}"/>
                 <Separator/>
-                <MenuItem Header="Start"      Command="{Binding StartCommand,     RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Play}"/>
-                <MenuItem Header="Shutdown"   Command="{Binding ShutdownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Power}"/>
-                <MenuItem Header="Reboot"     Command="{Binding RebootCommand,   RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Restart}"/>
-                <MenuItem Header="Suspend"    Command="{Binding SuspendCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Pause}"/>
-                <MenuItem Header="Resume"     Command="{Binding ResumeCommand,   RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Play}"/>
-                <MenuItem Header="Hibernate"  Command="{Binding HibernateCommand,RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Snowflake}"/>
-                <MenuItem Header="Force Stop" Command="{Binding StopCommand,     RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Stop}"/>
-                <MenuItem Header="Reset"      Command="{Binding ResetCommand,    RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Autorenew}"/>
+                <MenuItem Header="Start"      Command="{Binding StartCommand,       RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Play}"/>
+                <MenuItem Header="Shutdown"   Command="{Binding ShutdownCommand,   RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Power}"/>
+                <MenuItem Header="Reboot"     Command="{Binding RebootCommand,     RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Restart}"/>
+                <MenuItem Header="Suspend"    Command="{Binding SuspendCommand,    RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Pause}"/>
+                <MenuItem Header="Resume"     Command="{Binding ResumeCommand,     RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Play}"/>
+                <MenuItem Header="Hibernate"  Command="{Binding HibernateCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Snowflake}"/>
+                <MenuItem Header="Force Stop" Command="{Binding StopCommand,       RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Stop}"/>
+                <MenuItem Header="Reset"      Command="{Binding ResetCommand,      RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Autorenew}"/>
             </ContextMenu>
         </md:Card.ContextMenu>
 
@@ -54,11 +54,12 @@
                 <DockPanel Margin="0,0,0,10">
                     <Border Background="{DynamicResource MaterialDesign.Brush.Primary}" CornerRadius="4" Padding="6,2">
                         <TextBlock Text="{Binding Machine.Type, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                   FontSize="10" FontWeight="Bold" Foreground="{DynamicResource MaterialDesign.Brush.Primary.Foreground}"
-                                   TextTransform="Uppercase"/>
+                                   FontSize="10" FontWeight="Bold"
+                                   Foreground="{DynamicResource MaterialDesign.Brush.Primary.Foreground}"/>
                     </Border>
                     <TextBlock Text="{Binding Machine.Vmid, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat='#{0}'}"
-                               DockPanel.Dock="Right" Style="{StaticResource MaterialDesignCaptionTextBlock}"
+                               DockPanel.Dock="Right"
+                               Style="{StaticResource MaterialDesignCaptionTextBlock}"
                                Opacity="0.45" VerticalAlignment="Center" FontWeight="Medium"/>
                 </DockPanel>
 
@@ -78,8 +79,7 @@
                         Background="{Binding Machine.Status, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource StatusToBrush}}"
                         Padding="10,3">
                     <TextBlock Text="{Binding Machine.Status, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                               FontSize="10" FontWeight="Bold" Foreground="White"
-                               TextTransform="Uppercase"/>
+                               FontSize="10" FontWeight="Bold" Foreground="White"/>
                 </Border>
 
                 <!-- CPU bar -->
@@ -121,29 +121,24 @@
             <Border Grid.Row="2" Background="{DynamicResource MaterialDesign.Brush.CardBackground}" Padding="8,6"
                     BorderThickness="0,1,0,0" BorderBrush="{DynamicResource MaterialDesign.Brush.TextBox.HoverBackground}">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <!-- Console -->
                     <Button Style="{StaticResource ActionBtn}" ToolTip="NoVNC Console"
                             Command="{Binding OpenNoVncCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                         <md:PackIcon Kind="MonitorEye" Width="16" Height="16"/>
                     </Button>
-                    <!-- Terminal -->
                     <Button Style="{StaticResource ActionBtn}" ToolTip="xTermJS"
                             Command="{Binding OpenXtermCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
                         <md:PackIcon Kind="Console" Width="16" Height="16"/>
                     </Button>
-                    <!-- Start -->
                     <Button Style="{StaticResource ActionBtn}" ToolTip="Start"
                             Command="{Binding StartCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Visibility="{Binding Machine.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}, ConverterParameter=inverse}">
                         <md:PackIcon Kind="Play" Width="16" Height="16" Foreground="#4CAF50"/>
                     </Button>
-                    <!-- Shutdown -->
                     <Button Style="{StaticResource ActionBtn}" ToolTip="Shutdown"
                             Command="{Binding ShutdownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Visibility="{Binding Machine.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}">
                         <md:PackIcon Kind="Power" Width="16" Height="16" Foreground="#F44336"/>
                     </Button>
-                    <!-- Reboot -->
                     <Button Style="{StaticResource ActionBtn}" ToolTip="Reboot"
                             Command="{Binding RebootCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                             Visibility="{Binding Machine.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}}">
