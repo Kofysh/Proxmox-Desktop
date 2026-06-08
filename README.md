@@ -80,6 +80,31 @@ dotnet build -c Release
 
 ---
 
+## CI / CD
+
+### Build
+
+Every push to `master` and every pull request automatically triggers a build. If it succeeds, a **build artifact** (`ProxmoxDesktop-win-x64`) is uploaded and available for 7 days under the [Actions](../../actions) tab — no tag needed.
+
+### Release
+
+Releases are created in two ways:
+
+**Option 1 — Git tag** (from your machine):
+```bash
+git tag v2.1.0
+git push origin v2.1.0
+```
+
+**Option 2 — Manual trigger** (from GitHub UI):
+1. Go to [Actions → Release](../../actions/workflows/release.yml)
+2. Click **Run workflow**
+3. Enter the tag name (e.g. `v2.1.0`) and confirm
+
+Tags containing `-beta` or `-rc` are automatically marked as pre-releases.
+
+---
+
 ## Configuration
 
 On first launch, fill in:
@@ -151,8 +176,8 @@ Proxmox-Desktop/
 ├── Resources/
 ├── ProxmoxDesktop.sln
 └── .github/workflows/
-    ├── build.yml                  # Build on every push / PR
-    └── release.yml                # Release on v* tag
+    ├── build.yml                  # Build + artifact on every push / PR
+    └── release.yml                # Release on v*.*.* tag or manual trigger
 ```
 
 **Tech stack:**

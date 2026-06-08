@@ -22,10 +22,29 @@ jobs:
       - name: Restore
         run: dotnet restore "Proxmox Desktop/ProxmoxDesktop.csproj"
 
-      - name: Build (Release x64)
+      - name: Build
+        shell: pwsh
         run: |
           dotnet build "Proxmox Desktop/ProxmoxDesktop.csproj" `
             --configuration Release `
             --no-restore `
             -p:Platform=x64
+
+      - name: Publish
         shell: pwsh
+        run: |
+          dotnet publish "Proxmox Desktop/ProxmoxDesktop.csproj" `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=false `
+            -p:PublishReadyToRun=true `
+            --no-restore `
+            -o output/ProxmoxDesktop
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProxmoxDesktop-win-x64
+          path: output/ProxmoxDesktop/
+          retention-days: 7
