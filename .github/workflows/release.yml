@@ -1,4 +1,4 @@
-name: Build and Release
+name: Release
 
 on:
   push:
@@ -6,13 +6,14 @@ on:
       - 'v*'
 
 jobs:
-  build:
+  release:
     runs-on: windows-latest
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup .NET 9
         uses: actions/setup-dotnet@v4
@@ -22,31 +23,41 @@ jobs:
       - name: Restore
         run: dotnet restore "Proxmox Desktop/ProxmoxDesktop.csproj"
 
-      - name: Publish
+      - name: Publish (self-contained win-x64)
+        shell: pwsh
         run: |
           dotnet publish "Proxmox Desktop/ProxmoxDesktop.csproj" `
-            -c Release -r win-x64 --self-contained true `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=false `
+            -p:PublishReadyToRun=true `
             -o output/ProxmoxDesktop
-        shell: pwsh
 
-      - name: ZIP
-        run: Compress-Archive -Path output/ProxmoxDesktop/* -DestinationPath output/ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip
+      - name: Create ZIP
         shell: pwsh
+        run: |
+          Compress-Archive `
+            -Path output/ProxmoxDesktop/* `
+            -DestinationPath output/ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip
 
-      - name: Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Proxmox Desktop ${{ github.ref_name }}
+          name: "Proxmox Desktop ${{ github.ref_name }}"
           body: |
-            ## Installation
+            ## 📦 Installation
             1. Télécharger `ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip`
-            2. Extraire
+            2. Extraire n'importe où
             3. Lancer `ProxmoxDesktop.exe`
 
-            > Portable — aucune installation requise.
+            > Portable — aucune installation requise. .NET runtime inclus.
 
             ## Prérequis
-            - Windows 10 (build 19041+) ou Windows 11
-            - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+            - Windows 10 (build 17763+) ou Windows 11
+            - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) *(pré-installé sur Win 11)*
+            - [Virt-Viewer + UsbDk](https://www.spice-space.org/download.html) *(SPICE uniquement)*
           files: output/ProxmoxDesktop-${{ github.ref_name }}-win-x64.zip
           generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
