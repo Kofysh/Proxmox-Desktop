@@ -32,9 +32,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int vmCount;
     [ObservableProperty] private int lxcCount;
 
-    partial void OnSearchQueryChanged(string _)   => ApplyFilter();
-    partial void OnIsGroupedByNodeChanged(bool _) => ApplyFilter();
-    partial void OnSelectedNodeChanged(string? _) => ApplyFilter();
+    partial void OnSearchQueryChanged(string value)   => ApplyFilter();
+    partial void OnIsGroupedByNodeChanged(bool value) => ApplyFilter();
+    partial void OnSelectedNodeChanged(string? value) => ApplyFilter();
 
     public MainViewModel(ApiClient api)
     {

@@ -8,13 +8,13 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        NotificationService.Register();
+        NotificationService.Enable();
         new Views.LoginWindow().Show();
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
-        NotificationService.Unregister();
+        NotificationService.Disable();
         base.OnExit(e);
     }
 }

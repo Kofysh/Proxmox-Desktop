@@ -15,11 +15,11 @@ public partial class MainWindow : Window
     private readonly MainViewModel _vm;
     private bool _isDark = true;
 
-    public MainWindow(ApiClient api)
+    public MainWindow(IApiClient api)
     {
         InitializeComponent();
         Instance    = this;
-        _vm         = new MainViewModel(api);
+        _vm         = new MainViewModel((ApiClient)api);
         DataContext = _vm;
         _vm.OnLogout      += () => { _vm.Dispose(); Instance = null; new LoginWindow().Show(); Close(); };
         _vm.OnOpenConsole += (m, url) => new ConsoleWindow(m, url).Show();
