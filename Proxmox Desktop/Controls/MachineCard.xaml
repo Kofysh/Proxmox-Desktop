@@ -1,0 +1,65 @@
+<UserControl
+    x:Class="ProxmoxDesktop.Controls.MachineCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:converters="clr-namespace:ProxmoxDesktop.Converters">
+    <UserControl.Resources>
+        <converters:StatusToBrushConverter   x:Key="StatusToBrush"/>
+        <converters:BytesToReadableConverter x:Key="BytesToReadable"/>
+        <converters:CpuPercentConverter      x:Key="CpuPercent"/>
+        <BooleanToVisibilityConverter       x:Key="BoolToVisibility"/>
+    </UserControl.Resources>
+    <md:Card Width="185" UniformCornerRadius="10" md:ElevationAssist.Elevation="Dp2" Cursor="Hand">
+        <md:Card.ContextMenu>
+            <ContextMenu>
+                <MenuItem Header="NoVNC"   Command="{Binding OpenNoVncCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=MonitorEye}"/>
+                <MenuItem Header="xTermJS" Command="{Binding OpenXtermCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Console}"/>
+                <MenuItem Header="SPICE"   Command="{Binding OpenSpiceCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Desktopclassic}"/>
+                <Separator/>
+                <MenuItem Header="Power">
+                    <MenuItem Header="Start"      Command="{Binding StartCommand,     RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Play}"/>
+                    <MenuItem Header="Shutdown"   Command="{Binding ShutdownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Power}"/>
+                    <MenuItem Header="Reboot"     Command="{Binding RebootCommand,   RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Restart}"/>
+                    <MenuItem Header="Suspend"    Command="{Binding SuspendCommand,  RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Pause}"/>
+                    <MenuItem Header="Resume"     Command="{Binding ResumeCommand,   RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Play}"/>
+                    <MenuItem Header="Hibernate"  Command="{Binding HibernateCommand,RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Snowflake}"/>
+                    <MenuItem Header="Force Stop" Command="{Binding StopCommand,     RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Stop}"/>
+                    <MenuItem Header="Reset"      Command="{Binding ResetCommand,    RelativeSource={RelativeSource AncestorType=UserControl}}" Icon="{md:PackIcon Kind=Autorenew}"/>
+                </MenuItem>
+            </ContextMenu>
+        </md:Card.ContextMenu>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Height="4" CornerRadius="10,10,0,0" Background="{Binding Machine.Status, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource StatusToBrush}}"/>
+            <StackPanel Grid.Row="1" Margin="12,12,12,8">
+                <DockPanel Margin="0,0,0,8">
+                    <md:Chip Content="{Binding Machine.Type, RelativeSource={RelativeSource AncestorType=UserControl}}" IsDeletable="False" Height="22" FontSize="10" Background="{DynamicResource MaterialDesign.Brush.Primary}" Foreground="{DynamicResource MaterialDesign.Brush.Primary.Foreground}"/>
+                    <TextBlock Text="{Binding Machine.Vmid, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat=#{0}}" DockPanel.Dock="Right" Style="{StaticResource MaterialDesignCaptionTextBlock}" Opacity="0.55" VerticalAlignment="Center"/>
+                </DockPanel>
+                <Image Source="{Binding MachineIcon, RelativeSource={RelativeSource AncestorType=UserControl}}" Width="56" Height="56" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality" Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding Machine.Name, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource MaterialDesignBody1TextBlock}" FontWeight="Medium" TextTrimming="CharacterEllipsis" TextAlignment="Center" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                <md:Chip Content="{Binding Machine.Status, RelativeSource={RelativeSource AncestorType=UserControl}}" IsDeletable="False" Height="22" FontSize="10" HorizontalAlignment="Center" Background="{Binding Machine.Status, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource StatusToBrush}}" Foreground="White" Margin="0,0,0,8"/>
+                <Grid Margin="0,0,0,4">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="CPU" FontSize="10" Opacity="0.55" VerticalAlignment="Center"/>
+                    <ProgressBar Grid.Column="1" Value="{Binding Machine.CpuPercent, RelativeSource={RelativeSource AncestorType=UserControl}}" Maximum="100" Height="5" Style="{StaticResource MaterialDesignLinearProgressBar}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2" FontSize="10" Opacity="0.55" VerticalAlignment="Center" HorizontalAlignment="Right" Text="{Binding Machine.Cpu, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource CpuPercent}}"/>
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="36"/></Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="RAM" FontSize="10" Opacity="0.55" VerticalAlignment="Center"/>
+                    <ProgressBar Grid.Column="1" Value="{Binding Machine.MemPercent, RelativeSource={RelativeSource AncestorType=UserControl}}" Maximum="100" Height="5" Style="{StaticResource MaterialDesignLinearProgressBar}" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2" FontSize="10" Opacity="0.55" VerticalAlignment="Center" HorizontalAlignment="Right" Text="{Binding Machine.Mem, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BytesToReadable}}"/>
+                </Grid>
+            </StackPanel>
+            <Border Grid.Row="2" Background="{DynamicResource MaterialDesign.Brush.Primary}" Padding="8,4" CornerRadius="0,0,10,10">
+                <TextBlock Text="{Binding Machine.NodeName, RelativeSource={RelativeSource AncestorType=UserControl}}" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center" Foreground="{DynamicResource MaterialDesign.Brush.Primary.Foreground}"/>
+            </Border>
+        </Grid>
+    </md:Card>
+</UserControl>
