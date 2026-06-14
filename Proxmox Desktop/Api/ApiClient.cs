@@ -41,6 +41,9 @@ public sealed class ApiClient : IApiClient
     public ApiClient(string server, string port, bool skipSsl)
         : this(new ServerInfo(server, int.Parse(port), skipSsl)) { }
 
+    /// <summary>Hostname/IP this client is connected to — used as the friendly server name.</summary>
+    public string Host => _http.BaseAddress!.Host;
+
     // ─── Auth ─────────────────────────────────────────────────────────────────────────
 
     public async Task<List<RealmData>> GetRealmsAsync(CancellationToken ct = default)

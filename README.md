@@ -29,16 +29,21 @@ Built with **WPF** and **Material Design**, using an **MVVM** architecture (Comm
 
 ## Features
 
-- 🖥️ **VM/LXC Dashboard** &mdash; Grid view of all machines with real-time status, CPU%, RAM%, uptime
+- 🖥️ **VM/LXC Dashboard** &mdash; Grid **or list** view of all machines with real-time status, CPU%, RAM%, uptime
+- 🌐 **Multi-server** &mdash; Connect several Proxmox clusters at once and see them side by side
 - 📊 **Stats bar** &mdash; Total / Running / Stopped / VMs / LXC at a glance
-- 🗂️ **Node sidebar** &mdash; Filter by node with a single click
-- 🔍 **Search** &mdash; Filter by name, VMID or node
+- 🗂️ **Server &amp; node sidebar** &mdash; Filter by cluster or node with a single click
+- 🏷️ **Proxmox tags** &mdash; Shown on each card, click a tag to filter
+- 🧭 **Sorting** &mdash; By name, VMID, CPU, RAM, status or uptime
+- 🕑 **Activity log** &mdash; Side panel recording power actions, state changes and errors
+- 🔍 **Search** &mdash; Filter by name, VMID, node or server
 - 🖥️ **Integrated console** &mdash; NoVNC, xTermJS and SPICE (Virt-Viewer)
 - ⚡ **Power control** &mdash; Start / Shutdown / Reboot / Suspend / Hibernate / Force Stop / Reset
 - 🔐 **Dual authentication** &mdash; Classic login + TOTP, or Proxmox API Token
 - 🔔 **Windows notifications** &mdash; Native toast on VM state changes
-- 🔄 **Auto-refresh** &mdash; Every 60 seconds, ticket renewed automatically every 90 min
-- 🌙 **Dark / Light theme** &mdash; Toggle in one click
+- ⌨️ **Keyboard shortcuts** &mdash; `F5` refresh · `Ctrl+F` search · `Esc` clear
+- 🔄 **Auto-refresh** &mdash; Configurable interval, ticket renewed automatically every 90 min
+- 🌙 **Dark / Light theme** &mdash; Toggle in one click, remembered between sessions
 
 ---
 
@@ -199,10 +204,12 @@ Proxmox-Desktop/
 - [x] Group by node
 - [x] Windows Toast notifications
 - [x] Dark / Light theme
-- [ ] Multi-server support (multiple Proxmox clusters)
-- [ ] List view in addition to grid view
-- [ ] Proxmox tags displayed on cards
-- [ ] Action history / logs
+- [x] Multi-server support (multiple Proxmox clusters)
+- [x] List view in addition to grid view
+- [x] Proxmox tags displayed on cards
+- [x] Action history / logs
+- [ ] Bulk power actions on multiple machines
+- [ ] Per-VM resource graphs (history)
 
 ---
 

@@ -53,3 +53,34 @@ public sealed class BoolToInverseVisibilityConverter : IValueConverter
         => value is true ? Visibility.Collapsed : Visibility.Visible;
     public object ConvertBack(object? v, Type t, object? p, CultureInfo l) => throw new NotImplementedException();
 }
+
+/// <summary>Visible when the bound collection has at least one item, otherwise Collapsed.</summary>
+public sealed class CollectionToVisibilityConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo l)
+    {
+        if (value is System.Collections.IEnumerable e)
+        {
+            foreach (var _ in e) return Visibility.Visible;
+            return Visibility.Collapsed;
+        }
+        return value is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+    public object ConvertBack(object? v, Type t, object? p, CultureInfo l) => throw new NotImplementedException();
+}
+
+/// <summary>
+/// Maps a bool to a <see cref="GridLength"/> — true → ConverterParameter px (default 320),
+/// false → 0. Used to collapse the activity panel column.
+/// </summary>
+public sealed class BoolToGridLengthConverter : IValueConverter
+{
+    public object Convert(object? value, Type t, object? p, CultureInfo l)
+    {
+        var width = 320.0;
+        if (p is string s && double.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var w))
+            width = w;
+        return value is true ? new GridLength(width) : new GridLength(0);
+    }
+    public object ConvertBack(object? v, Type t, object? p, CultureInfo l) => throw new NotImplementedException();
+}

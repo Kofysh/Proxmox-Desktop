@@ -5,10 +5,12 @@
     xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:converters="clr-namespace:ProxmoxDesktop.Converters">
     <UserControl.Resources>
-        <converters:StatusToBrushConverter   x:Key="StatusToBrush"/>
-        <converters:BytesToReadableConverter x:Key="BytesToReadable"/>
-        <converters:CpuPercentConverter      x:Key="CpuPercent"/>
-        <BooleanToVisibilityConverter        x:Key="BoolToVisibility"/>
+        <converters:StatusToBrushConverter           x:Key="StatusToBrush"/>
+        <converters:BytesToReadableConverter         x:Key="BytesToReadable"/>
+        <converters:CpuPercentConverter              x:Key="CpuPercent"/>
+        <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
+        <converters:CollectionToVisibilityConverter  x:Key="CollectionToVisibility"/>
+        <BooleanToVisibilityConverter                x:Key="BoolToVisibility"/>
         <Style x:Key="ActionBtn" TargetType="Button" BasedOn="{StaticResource MaterialDesignIconForegroundButton}">
             <Setter Property="Width"   Value="32"/>
             <Setter Property="Height"  Value="32"/>
@@ -82,6 +84,29 @@
                                FontSize="10" FontWeight="Bold" Foreground="White"/>
                 </Border>
 
+                <!-- Tags (click to filter) -->
+                <ItemsControl ItemsSource="{Binding Machine.TagList, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              Visibility="{Binding Machine.TagList, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource CollectionToVisibility}}"
+                              HorizontalAlignment="Center" Margin="0,0,0,8">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><WrapPanel HorizontalAlignment="Center"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Command="{Binding FilterTagCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}"
+                                    Style="{StaticResource MaterialDesignFlatButton}"
+                                    Padding="6,0" Height="20" MinWidth="0" Margin="2,0"
+                                    md:ButtonAssist.CornerRadius="10" ToolTip="Filter by this tag">
+                                <StackPanel Orientation="Horizontal">
+                                    <md:PackIcon Kind="Tag" Width="10" Height="10" VerticalAlignment="Center" Margin="0,0,3,0"/>
+                                    <TextBlock Text="{Binding}" FontSize="10"/>
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
                 <!-- CPU bar -->
                 <Grid Margin="0,0,0,6">
                     <Grid.ColumnDefinitions>
@@ -131,7 +156,7 @@
                     </Button>
                     <Button Style="{StaticResource ActionBtn}" ToolTip="Start"
                             Command="{Binding StartCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                            Visibility="{Binding Machine.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVisibility}, ConverterParameter=inverse}">
+                            Visibility="{Binding Machine.IsRunning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource InverseBoolToVisibility}}">
                         <md:PackIcon Kind="Play" Width="16" Height="16" Foreground="#4CAF50"/>
                     </Button>
                     <Button Style="{StaticResource ActionBtn}" ToolTip="Shutdown"

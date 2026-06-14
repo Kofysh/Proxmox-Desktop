@@ -13,18 +13,34 @@
     Background="{DynamicResource MaterialDesign.Brush.Background}"
     TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
     FontFamily="{md:MaterialDesignFont}"
+    PreviewKeyDown="OnWindowPreviewKeyDown"
     md:ThemeAssist.Theme="Inherit">
+    <Window.InputBindings>
+        <KeyBinding Key="F5"     Command="{Binding RefreshCommand}"/>
+        <KeyBinding Key="Escape" Command="{Binding ClearSearchCommand}"/>
+    </Window.InputBindings>
     <Window.Resources>
         <converters:NotNullToVisibilityConverter     x:Key="NotNullToVisibility"/>
         <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibility"/>
-        <BooleanToVisibilityConverter               x:Key="BoolToVisibility"/>
-        <converters:StatusToBrushConverter          x:Key="StatusToBrush"/>
+        <converters:BoolToGridLengthConverter        x:Key="BoolToGridLength"/>
+        <converters:StatusToBrushConverter           x:Key="StatusToBrush"/>
+        <converters:BytesToReadableConverter         x:Key="BytesToReadable"/>
+        <BooleanToVisibilityConverter                x:Key="BoolToVisibility"/>
 
         <!-- Node sidebar item style -->
         <Style x:Key="NodeItem" TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
             <Setter Property="Padding" Value="12,8"/>
             <Setter Property="Margin"  Value="4,2"/>
             <Setter Property="md:ButtonAssist.CornerRadius" Value="8"/>
+        </Style>
+
+        <!-- Active filter chip -->
+        <Style x:Key="FilterChip" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource MaterialDesign.Brush.Primary}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
     </Window.Resources>
 
@@ -47,12 +63,25 @@
                                    FontWeight="Medium" VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Command="{Binding ToggleViewCommand}"
+                                ToolTip="Toggle grid / list view" Foreground="White">
+                            <md:PackIcon Kind="ViewList" Width="20" Height="20"/>
+                        </Button>
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Command="{Binding AddServerCommand}"
+                                ToolTip="Add a server connection" Foreground="White">
+                            <md:PackIcon Kind="ServerPlus" Width="20" Height="20"/>
+                        </Button>
+                        <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Command="{Binding ToggleActivityPanelCommand}"
+                                ToolTip="Activity log" Foreground="White">
+                            <md:PackIcon Kind="History" Width="20" Height="20"/>
+                        </Button>
+                        <Separator Margin="4,0"/>
                         <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Click="OnThemeToggle"
                                 ToolTip="Toggle theme" Foreground="White">
                             <md:PackIcon x:Name="ThemeIcon" Kind="WeatherNight" Width="20" Height="20"/>
                         </Button>
                         <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Command="{Binding RefreshCommand}"
-                                ToolTip="Refresh" Foreground="White">
+                                ToolTip="Refresh (F5)" Foreground="White">
                             <md:PackIcon Kind="Refresh" Width="20" Height="20"/>
                         </Button>
                         <Separator Margin="4,0"/>
@@ -62,8 +91,8 @@
                         </Button>
                     </StackPanel>
                     <!-- Search -->
-                    <TextBox Margin="24,0"
-                             md:HintAssist.Hint="Search VMs and containers..."
+                    <TextBox x:Name="SearchBox" Margin="24,0"
+                             md:HintAssist.Hint="Search VMs and containers...  (Ctrl+F)"
                              md:TextFieldAssist.HasLeadingIcon="True"
                              md:TextFieldAssist.LeadingIcon="Magnify"
                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -92,59 +121,285 @@
             <!-- ══ MAIN CONTENT ══ -->
             <Grid Grid.Row="3">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="200"/>  <!-- Sidebar -->
-                    <ColumnDefinition Width="*"/>    <!-- VM Grid -->
+                    <ColumnDefinition Width="210"/>  <!-- Sidebar -->
+                    <ColumnDefinition Width="*"/>    <!-- Views -->
+                    <ColumnDefinition Width="{Binding IsActivityPanelOpen, Converter={StaticResource BoolToGridLength}, ConverterParameter=340}"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- SIDEBAR -->
+                <!-- ── SIDEBAR ── -->
                 <Border Grid.Column="0"
                         BorderThickness="0,0,1,0"
                         BorderBrush="{DynamicResource MaterialDesign.Brush.TextBox.HoverBackground}">
-                    <DockPanel>
-                        <TextBlock DockPanel.Dock="Top" Text="NODES"
-                                   Style="{StaticResource MaterialDesignOverlineTextBlock}"
-                                   Margin="16,12,0,6" Opacity="0.5"/>
-                        <Button DockPanel.Dock="Top"
-                                Style="{StaticResource MaterialDesignFlatButton}"
-                                Command="{Binding ClearNodeFilterCommand}"
-                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                Margin="4,0,4,4" Padding="12,6"
-                                md:ButtonAssist.CornerRadius="8">
-                            <StackPanel Orientation="Horizontal">
-                                <md:PackIcon Kind="ServerNetwork" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="All nodes" VerticalAlignment="Center"/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- Servers -->
+                            <TextBlock Text="SERVERS" Style="{StaticResource MaterialDesignOverlineTextBlock}"
+                                       Margin="16,12,0,6" Opacity="0.5"/>
+                            <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                    Command="{Binding ClearServerFilterCommand}"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Margin="4,0,4,4" Padding="12,6" md:ButtonAssist.CornerRadius="8">
+                                <StackPanel Orientation="Horizontal">
+                                    <md:PackIcon Kind="SelectAll" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="All servers" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <ListBox ItemsSource="{Binding Connections}"
+                                     SelectedItem="{Binding SelectedConnection}"
+                                     ItemContainerStyle="{StaticResource NodeItem}"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:ServerConnection}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Width="22" Height="22" Padding="0"
+                                                    Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                    Command="{Binding DataContext.RemoveServerCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                    CommandParameter="{Binding}" ToolTip="Disconnect">
+                                                <md:PackIcon Kind="Close" Width="13" Height="13"/>
+                                            </Button>
+                                            <md:PackIcon Kind="Server" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7"/>
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding MachineCount, StringFormat=' ({0})'}" VerticalAlignment="Center" Opacity="0.45" FontSize="11"/>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!-- Nodes -->
+                            <TextBlock Text="NODES" Style="{StaticResource MaterialDesignOverlineTextBlock}"
+                                       Margin="16,14,0,6" Opacity="0.5"/>
+                            <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                    Command="{Binding ClearNodeFilterCommand}"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                    Margin="4,0,4,4" Padding="12,6" md:ButtonAssist.CornerRadius="8">
+                                <StackPanel Orientation="Horizontal">
+                                    <md:PackIcon Kind="ServerNetwork" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="All nodes" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <ListBox ItemsSource="{Binding NodeList}"
+                                     SelectedItem="{Binding SelectedNode}"
+                                     ItemContainerStyle="{StaticResource NodeItem}"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <md:PackIcon Kind="Server" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7"/>
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- ── VIEWS ── -->
+                <Grid Grid.Column="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>  <!-- sub-toolbar -->
+                        <RowDefinition Height="*"/>     <!-- grid / list / empty -->
+                    </Grid.RowDefinitions>
+
+                    <!-- Sub-toolbar: sort + active filters + count -->
+                    <Border Grid.Row="0" Padding="16,8"
+                            BorderThickness="0,0,0,1" BorderBrush="{DynamicResource MaterialDesign.Brush.TextBox.HoverBackground}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Opacity="0.5" FontSize="12"
+                                       Text="{Binding FilteredMachines.Count, StringFormat='{}{0} shown'}"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <md:PackIcon Kind="SortVariant" Width="18" Height="18" VerticalAlignment="Center" Opacity="0.6" Margin="0,0,8,0"/>
+                                <ComboBox Width="120" SelectedIndex="{Binding SortIndex}" md:HintAssist.Hint="Sort"
+                                          Style="{StaticResource MaterialDesignComboBox}" VerticalAlignment="Center">
+                                    <ComboBoxItem Content="Name"/>
+                                    <ComboBoxItem Content="VMID"/>
+                                    <ComboBoxItem Content="CPU"/>
+                                    <ComboBoxItem Content="RAM"/>
+                                    <ComboBoxItem Content="Status"/>
+                                    <ComboBoxItem Content="Uptime"/>
+                                </ComboBox>
+
+                                <!-- active filter chips -->
+                                <Border Style="{StaticResource FilterChip}"
+                                        Visibility="{Binding SelectedConnection, Converter={StaticResource NotNullToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <md:PackIcon Kind="Server" Width="12" Height="12" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{Binding SelectedConnection.Name}" Foreground="White" FontSize="11" VerticalAlignment="Center"/>
+                                        <Button Command="{Binding ClearServerFilterCommand}" Margin="4,0,0,0" Padding="0" Width="16" Height="16"
+                                                Style="{StaticResource MaterialDesignIconForegroundButton}" Foreground="White">
+                                            <md:PackIcon Kind="Close" Width="11" Height="11"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource FilterChip}"
+                                        Visibility="{Binding SelectedNode, Converter={StaticResource NotNullToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <md:PackIcon Kind="ServerNetwork" Width="12" Height="12" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{Binding SelectedNode}" Foreground="White" FontSize="11" VerticalAlignment="Center"/>
+                                        <Button Command="{Binding ClearNodeFilterCommand}" Margin="4,0,0,0" Padding="0" Width="16" Height="16"
+                                                Style="{StaticResource MaterialDesignIconForegroundButton}" Foreground="White">
+                                            <md:PackIcon Kind="Close" Width="11" Height="11"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource FilterChip}"
+                                        Visibility="{Binding SelectedTag, Converter={StaticResource NotNullToVisibility}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <md:PackIcon Kind="Tag" Width="12" Height="12" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{Binding SelectedTag}" Foreground="White" FontSize="11" VerticalAlignment="Center"/>
+                                        <Button Command="{Binding ClearTagFilterCommand}" Margin="4,0,0,0" Padding="0" Width="16" Height="16"
+                                                Style="{StaticResource MaterialDesignIconForegroundButton}" Foreground="White">
+                                            <md:PackIcon Kind="Close" Width="11" Height="11"/>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                        </Button>
-                        <ListBox ItemsSource="{Binding NodeList}"
-                                 SelectedItem="{Binding SelectedNode}"
-                                 ItemContainerStyle="{StaticResource NodeItem}">
+                        </DockPanel>
+                    </Border>
+
+                    <Grid Grid.Row="1">
+                        <!-- GRID VIEW -->
+                        <ScrollViewer Padding="16" VerticalScrollBarVisibility="Auto"
+                                      Visibility="{Binding IsListView, Converter={StaticResource InverseBoolToVisibility}}">
+                            <ItemsControl ItemsSource="{Binding FilteredMachines}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type models:MachineData}">
+                                        <controls:MachineCard Machine="{Binding}" Margin="0,0,12,12"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- LIST VIEW -->
+                        <DataGrid ItemsSource="{Binding FilteredMachines}"
+                                  Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibility}}"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
+                                  CanUserAddRows="False" CanUserDeleteRows="False"
+                                  HeadersVisibility="Column" SelectionMode="Single"
+                                  GridLinesVisibility="Horizontal" Margin="8"
+                                  Style="{StaticResource MaterialDesignDataGrid}">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="" Width="36" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Ellipse Width="10" Height="10" HorizontalAlignment="Center"
+                                                     Fill="{Binding Status, Converter={StaticResource StatusToBrush}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Type"   Binding="{Binding Type}"   Width="60"/>
+                                <DataGridTextColumn Header="VMID"   Binding="{Binding Vmid}"   Width="70"/>
+                                <DataGridTextColumn Header="Name"   Binding="{Binding Name}"   Width="*"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="90"/>
+                                <DataGridTextColumn Header="CPU"    Binding="{Binding CpuPercent, StringFormat={}{0:F1}%}" Width="70"/>
+                                <DataGridTextColumn Header="RAM"    Binding="{Binding Mem, Converter={StaticResource BytesToReadable}}" Width="80"/>
+                                <DataGridTextColumn Header="Uptime" Binding="{Binding UptimeFormatted}" Width="90"/>
+                                <DataGridTextColumn Header="Server" Binding="{Binding ServerName}" Width="110"/>
+                                <DataGridTextColumn Header="Node"   Binding="{Binding NodeName}"   Width="100"/>
+                                <DataGridTextColumn Header="Tags"   Binding="{Binding Tags}"       Width="120"/>
+                                <DataGridTemplateColumn Header="Actions" Width="170" CanUserSort="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Width="30" Height="30" Padding="0" Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                        ToolTip="NoVNC" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.OpenNoVncCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                                    <md:PackIcon Kind="MonitorEye" Width="15" Height="15"/>
+                                                </Button>
+                                                <Button Width="30" Height="30" Padding="0" Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                        ToolTip="xTermJS" CommandParameter="{Binding}"
+                                                        Command="{Binding DataContext.OpenXtermCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                                    <md:PackIcon Kind="Console" Width="15" Height="15"/>
+                                                </Button>
+                                                <Button Width="30" Height="30" Padding="0" Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                        ToolTip="Start" CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsRunning, Converter={StaticResource InverseBoolToVisibility}}"
+                                                        Command="{Binding DataContext.StartCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                                    <md:PackIcon Kind="Play" Width="15" Height="15" Foreground="#4CAF50"/>
+                                                </Button>
+                                                <Button Width="30" Height="30" Padding="0" Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                        ToolTip="Shutdown" CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}"
+                                                        Command="{Binding DataContext.ShutdownCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                                    <md:PackIcon Kind="Power" Width="15" Height="15" Foreground="#F44336"/>
+                                                </Button>
+                                                <Button Width="30" Height="30" Padding="0" Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                                        ToolTip="Reboot" CommandParameter="{Binding}"
+                                                        Visibility="{Binding IsRunning, Converter={StaticResource BoolToVisibility}}"
+                                                        Command="{Binding DataContext.RebootCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}">
+                                                    <md:PackIcon Kind="Restart" Width="15" Height="15"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- EMPTY STATE -->
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+                            <md:PackIcon Kind="Magnify" Width="48" Height="48" Opacity="0.25" HorizontalAlignment="Center"/>
+                            <TextBlock Text="No machines match your filters" Opacity="0.5" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+                <!-- ── ACTIVITY PANEL ── -->
+                <Border Grid.Column="2"
+                        Visibility="{Binding IsActivityPanelOpen, Converter={StaticResource BoolToVisibility}}"
+                        BorderThickness="1,0,0,0"
+                        BorderBrush="{DynamicResource MaterialDesign.Brush.TextBox.HoverBackground}"
+                        Background="{DynamicResource MaterialDesign.Brush.CardBackground}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" Background="{DynamicResource MaterialDesign.Brush.Primary}" Padding="12,8">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Width="28" Height="28" Padding="0"
+                                            Command="{Binding ClearActivityCommand}" ToolTip="Clear" Foreground="White">
+                                        <md:PackIcon Kind="DeleteSweep" Width="16" Height="16"/>
+                                    </Button>
+                                    <Button Style="{StaticResource MaterialDesignToolForegroundButton}" Width="28" Height="28" Padding="0"
+                                            Command="{Binding ToggleActivityPanelCommand}" ToolTip="Close" Foreground="White">
+                                        <md:PackIcon Kind="Close" Width="16" Height="16"/>
+                                    </Button>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <md:PackIcon Kind="History" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <TextBlock Text="ACTIVITY" Foreground="White" FontWeight="Medium" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <ListBox ItemsSource="{Binding Activity.Entries}"
+                                 HorizontalContentAlignment="Stretch"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <md:PackIcon Kind="Server" Width="14" Height="14" VerticalAlignment="Center" Margin="0,0,8,0" Opacity="0.7"/>
-                                        <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
-                                    </StackPanel>
+                                    <Grid Margin="0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <md:PackIcon Grid.Column="0" Kind="{Binding Icon}" Foreground="{Binding Color}"
+                                                     Width="18" Height="18" Margin="0,1,8,0" VerticalAlignment="Top"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding Detail}" FontSize="11" Opacity="0.55" TextWrapping="Wrap"
+                                                       Visibility="{Binding Detail, Converter={StaticResource NotNullToVisibility}}"/>
+                                            <TextBlock Text="{Binding TimeText}" FontSize="10" Opacity="0.4"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </DockPanel>
                 </Border>
-
-                <!-- VM GRID -->
-                <ScrollViewer Grid.Column="1" Padding="16" VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding FilteredMachines}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type models:MachineData}">
-                                <controls:MachineCard Machine="{Binding}" Margin="0,0,12,12"/>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
             </Grid>
 
             <!-- ══ SNACKBAR ══ -->
