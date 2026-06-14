@@ -65,10 +65,14 @@ public sealed class ApiClient : IApiClient
         if (!string.IsNullOrWhiteSpace(otp)) form["otp"] = otp;
 
         TicketResponse? result;
-        try   { result = await PostTicketAsync(form, ct); }
+        HttpStatusCode  status;
+        try   { (result, status) = await PostTicketWithStatusAsync(form, ct); }
         catch (Exception ex) { return LoginResult.Failure($"Cannot reach server: {ex.Message}"); }
 
-        if (result is null) return LoginResult.Failure("Invalid server response.");
+        if (result is null)
+            return LoginResult.Failure(status == HttpStatusCode.Unauthorized
+                ? "Login rejected — check username, password and realm, and enter the TOTP code if 2FA is enabled."
+                : $"Login rejected by the server (HTTP {(int)status}).");
 
         if (result.Ticket?.Contains("PVE:!tfa!") == true)
             return string.IsNullOrWhiteSpace(otp)
@@ -261,12 +265,16 @@ public sealed class ApiClient : IApiClient
 
     private async Task<TicketResponse?> PostTicketAsync(
         Dictionary<string, string> form, CancellationToken ct)
+        => (await PostTicketWithStatusAsync(form, ct)).Data;
+
+    private async Task<(TicketResponse? Data, HttpStatusCode Status)> PostTicketWithStatusAsync(
+        Dictionary<string, string> form, CancellationToken ct)
     {
         var resp = await _http.PostAsync(
             "access/ticket", new FormUrlEncodedContent(form), ct);
-        if (!resp.IsSuccessStatusCode) return null;
         var body = await resp.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<PveResponse<TicketResponse>>(body, _json)?.Data;
+        if (!resp.IsSuccessStatusCode) return (null, resp.StatusCode);
+        return (JsonSerializer.Deserialize<PveResponse<TicketResponse>>(body, _json)?.Data, resp.StatusCode);
     }
 
     private async Task<List<MachineData>> FetchMachinesAsync(
