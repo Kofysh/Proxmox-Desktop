@@ -39,7 +39,6 @@ jobs:
             --self-contained true `
             -p:PublishSingleFile=false `
             -p:PublishReadyToRun=true `
-            --no-restore `
             -o output/ProxmoxDesktop
 
       - name: Upload build artifact
