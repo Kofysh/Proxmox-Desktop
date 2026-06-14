@@ -93,18 +93,21 @@ Every push to `master` and every pull request automatically triggers a build. If
 
 ### Release
 
-Releases are created in two ways:
+Releases are created three ways:
 
-**Option 1 — Git tag** (from your machine):
+**Option 1 — Automatic on version bump** *(recommended)*:
+Bump `<InformationalVersion>` in `Proxmox Desktop/ProxmoxDesktop.csproj`, commit and merge to `master`. The Release workflow reads the version, and if no `v<version>` tag exists yet, it builds, zips and publishes the GitHub Release automatically. Pushing `master` without changing the version is a no-op, so it never spams releases.
+
+**Option 2 — Git tag** (from your machine):
 ```bash
-git tag v2.1.0
-git push origin v2.1.0
+git tag v2.2.0
+git push origin v2.2.0
 ```
 
-**Option 2 — Manual trigger** (from GitHub UI):
+**Option 3 — Manual trigger** (from GitHub UI):
 1. Go to [Actions → Release](../../actions/workflows/release.yml)
 2. Click **Run workflow**
-3. Enter the tag name (e.g. `v2.1.0`) and confirm
+3. Enter the tag name (e.g. `v2.2.0`) and confirm
 
 Tags containing `-beta` or `-rc` are automatically marked as pre-releases.
 
