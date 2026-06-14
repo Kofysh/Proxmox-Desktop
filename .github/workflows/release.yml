@@ -2,12 +2,14 @@ name: Release
 
 on:
   push:
+    branches:
+      - master
     tags:
       - 'v*.*.*'
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release tag (example: v2.1.0)'
+        description: 'Release tag (example: v2.2.0)'
         required: true
         type: string
 
@@ -28,20 +30,47 @@ jobs:
         with:
           dotnet-version: '9.0.x'
 
-      - name: Resolve tag
-        id: tag
+      - name: Resolve release tag
+        id: resolve
         shell: pwsh
         run: |
-          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
-            "tag=${{ inputs.tag_name }}" >> $env:GITHUB_OUTPUT
-          } else {
-            "tag=${{ github.ref_name }}" >> $env:GITHUB_OUTPUT
+          $proceed = 'true'
+          if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -like 'refs/tags/*') {
+            # Manual tag push: use the pushed tag.
+            $tag = $env:GITHUB_REF_NAME
           }
+          elseif ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch') {
+            # Manual run: use the provided tag.
+            $tag = '${{ inputs.tag_name }}'
+          }
+          else {
+            # Push to master: derive the tag from the project version and
+            # only release if that tag does not already exist.
+            $csproj = Get-Content "Proxmox Desktop/ProxmoxDesktop.csproj" -Raw
+            if ($csproj -notmatch '<InformationalVersion>([^<]+)</InformationalVersion>') {
+              Write-Error "InformationalVersion not found in csproj"; exit 1
+            }
+            $version = $Matches[1].Trim()
+            $tag = "v$version"
+            git fetch --tags --quiet
+            if (git tag -l $tag) {
+              Write-Host "Tag $tag already exists - nothing to release."
+              $proceed = 'false'
+            }
+            else {
+              Write-Host "New version detected: $tag"
+            }
+          }
+          "tag=$tag"          >> $env:GITHUB_OUTPUT
+          "proceed=$proceed"  >> $env:GITHUB_OUTPUT
+          Write-Host "Resolved tag=$tag proceed=$proceed"
 
       - name: Restore
+        if: steps.resolve.outputs.proceed == 'true'
         run: dotnet restore "Proxmox Desktop/ProxmoxDesktop.csproj"
 
       - name: Publish (self-contained win-x64)
+        if: steps.resolve.outputs.proceed == 'true'
         shell: pwsh
         run: |
           dotnet publish "Proxmox Desktop/ProxmoxDesktop.csproj" `
@@ -53,20 +82,22 @@ jobs:
             -o output/ProxmoxDesktop
 
       - name: Create ZIP
+        if: steps.resolve.outputs.proceed == 'true'
         shell: pwsh
         run: |
           Compress-Archive `
             -Path output/ProxmoxDesktop/* `
-            -DestinationPath output/ProxmoxDesktop-${{ steps.tag.outputs.tag }}-win-x64.zip
+            -DestinationPath output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-win-x64.zip
 
       - name: Create GitHub Release
+        if: steps.resolve.outputs.proceed == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "Proxmox Desktop ${{ steps.tag.outputs.tag }}"
+          tag_name: ${{ steps.resolve.outputs.tag }}
+          name: "Proxmox Desktop ${{ steps.resolve.outputs.tag }}"
           body: |
             ## 📦 Installation
-            1. Download `ProxmoxDesktop-${{ steps.tag.outputs.tag }}-win-x64.zip`
+            1. Download `ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-win-x64.zip`
             2. Extract anywhere
             3. Run `ProxmoxDesktop.exe`
 
@@ -76,9 +107,9 @@ jobs:
             - Windows 10 (build 17763+) or Windows 11
             - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) *(pre-installed on Windows 11)*
             - [Virt-Viewer + UsbDk](https://www.spice-space.org/download.html) *(SPICE only)*
-          files: output/ProxmoxDesktop-${{ steps.tag.outputs.tag }}-win-x64.zip
+          files: output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-win-x64.zip
           generate_release_notes: true
           draft: false
-          prerelease: ${{ contains(steps.tag.outputs.tag, '-beta') || contains(steps.tag.outputs.tag, '-rc') }}
+          prerelease: ${{ contains(steps.resolve.outputs.tag, '-beta') || contains(steps.resolve.outputs.tag, '-rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
