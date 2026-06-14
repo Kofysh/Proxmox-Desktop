@@ -17,6 +17,8 @@ public partial class MachineCard : UserControl
 
     public string MachineIcon => Machine?.IsLxc == true ? "/Assets/lxc.png" : "/Assets/vm.png";
 
+    public IRelayCommand<string> FilterTagCommand => new RelayCommand<string>(tag => { if (!string.IsNullOrEmpty(tag)) VM?.FilterByTagCommand.Execute(tag); });
+
     public IRelayCommand OpenNoVncCommand    => new RelayCommand(() => VM?.OpenConsoleCommand.Execute(new ConsoleArgs(Machine, "novnc")));
     public IRelayCommand OpenXtermCommand    => new RelayCommand(() => VM?.OpenConsoleCommand.Execute(new ConsoleArgs(Machine, "xtermjs")));
     public IRelayCommand OpenSpiceCommand    => new RelayCommand(() => VM?.OpenSpiceCommand.Execute(Machine));

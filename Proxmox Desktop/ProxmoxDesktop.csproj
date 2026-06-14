@@ -10,8 +10,8 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>ProxmoxDesktop</RootNamespace>
     <AssemblyName>ProxmoxDesktop</AssemblyName>
-    <AssemblyVersion>2.1.0.0</AssemblyVersion>
-    <InformationalVersion>2.1.0</InformationalVersion>
+    <AssemblyVersion>2.2.0.0</AssemblyVersion>
+    <InformationalVersion>2.2.0</InformationalVersion>
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>

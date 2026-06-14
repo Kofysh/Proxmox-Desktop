@@ -19,9 +19,10 @@ public record MachineData
     [JsonPropertyName("serial")]  public int    Serial  { get; init; }
     [JsonPropertyName("tags")]    public string? Tags   { get; init; }
 
-    // Set by ApiClient after deserialization
-    public string NodeName { get; init; } = string.Empty;
-    public string Type     { get; init; } = string.Empty;
+    // Set by ApiClient / ViewModel after deserialization
+    public string NodeName   { get; init; } = string.Empty;
+    public string Type       { get; init; } = string.Empty;
+    public string ServerName { get; init; } = string.Empty;
 
     // Computed
     public bool   IsRunning    => Status == "running";
