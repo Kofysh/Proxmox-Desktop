@@ -45,9 +45,10 @@ L'interface est construite avec **WinUI 3** et **Windows App SDK 2.5.1**. Le pro
 | .NET SDK pour compiler | 10.0.100 ou version 10.0.x plus récente |
 | Windows App SDK | 2.5.1, inclus dans l'application publiée |
 | WebView2 Runtime | Version stable récente, généralement déjà installé sur Windows 11 |
+| Microsoft Visual C++ Redistributable x64 | Requis par Windows App SDK ; inclus dans l'installateur |
 | Virt-Viewer + UsbDk | Requis uniquement pour SPICE |
 
-Les versions publiées sont autonomes : l'utilisateur n'a pas besoin d'installer le runtime .NET ou Windows App SDK. WebView2 reste nécessaire pour les consoles web.
+Les versions publiées sont autonomes : l'utilisateur n'a pas besoin d'installer le runtime .NET ou Windows App SDK. L'installateur installe également le runtime Microsoft Visual C++ x64. Pour la version portable, installez-le depuis [Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe) si nécessaire. WebView2 reste nécessaire pour les consoles web.
 
 ## Installation
 
