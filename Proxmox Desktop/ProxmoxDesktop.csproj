@@ -2,19 +2,15 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
-    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <UseWinUI>true</UseWinUI>
-    <WindowsPackageType>None</WindowsPackageType>
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <EnableMsixTooling>false</EnableMsixTooling>
+    <UseWPF>true</UseWPF>
     <RootNamespace>ProxmoxDesktop</RootNamespace>
     <AssemblyName>ProxmoxDesktop</AssemblyName>
-    <AssemblyVersion>2.3.1.0</AssemblyVersion>
-    <InformationalVersion>2.3.1</InformationalVersion>
+    <AssemblyVersion>2.4.0.0</AssemblyVersion>
+    <InformationalVersion>2.4.0</InformationalVersion>
     <ApplicationIcon>..\Resources\Icons\default-icon.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
@@ -25,11 +21,11 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm"              Version="8.4.2" />
-    <PackageReference Include="Microsoft.WindowsAppSDK"            Version="2.5.1" />
     <PackageReference Include="Microsoft.Web.WebView2"              Version="1.0.4258.31" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
     <PackageReference Include="System.Drawing.Common"               Version="10.0.12" />
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
+    <PackageReference Include="WPF-UI" Version="4.0.3" />
   </ItemGroup>
 
   <ItemGroup>

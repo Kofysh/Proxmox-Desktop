@@ -4,7 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using ProxmoxDesktop.Api;
 using ProxmoxDesktop.Api.Models;
 using ProxmoxDesktop.Services;
-using Microsoft.UI.Dispatching;
+using System.Windows.Threading;
 
 namespace ProxmoxDesktop.ViewModels;
 
@@ -18,7 +18,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>One entry per connected Proxmox cluster.</summary>
     public ObservableCollection<ServerConnection> Connections { get; } = [];
     public ActivityLogService Activity { get; }
-    private readonly DispatcherQueue? _dispatcher;
+    private readonly Dispatcher? _dispatcher;
 
     [ObservableProperty] private ObservableCollection<MachineData> machines         = [];
     [ObservableProperty] private ObservableCollection<NodeGroup>   groupedMachines  = [];
@@ -51,7 +51,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnSelectedTagChanged(string? value)  => ApplyFilter();
     partial void OnSelectedConnectionChanged(ServerConnection? value) { SelectedNode = null; ApplyFilter(); }
 
-    public MainViewModel(ApiClient api, int refreshSeconds = 60, DispatcherQueue? dispatcher = null)
+    public MainViewModel(ApiClient api, int refreshSeconds = 60, Dispatcher? dispatcher = null)
     {
         _dispatcher = dispatcher;
         Activity = new ActivityLogService(dispatcher);
@@ -267,8 +267,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void RunOnUi(Action action)
     {
-        if (_dispatcher is null || _dispatcher.HasThreadAccess) action();
-        else _dispatcher.TryEnqueue(() => action());
+        if (_dispatcher is null || _dispatcher.CheckAccess()) action();
+        else _dispatcher.BeginInvoke(action);
     }
 
     public event Action<MachineData, string>? OnOpenConsole;

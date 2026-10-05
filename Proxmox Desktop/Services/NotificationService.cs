@@ -1,5 +1,3 @@
-using Microsoft.Toolkit.Uwp.Notifications;
-
 namespace ProxmoxDesktop.Services;
 
 /// <summary>
@@ -17,29 +15,11 @@ public static class NotificationService
         string vmName, int vmid, string oldStatus, string newStatus)
     {
         if (!_enabled) return;
-        try
-        {
-            var (icon, title) = newStatus switch
-            {
-                "running"   => ("\u25B6", $"{vmName} is now running"),
-                "stopped"   => ("\u23F9", $"{vmName} has stopped"),
-                "suspended" => ("\u23F8", $"{vmName} is suspended"),
-                "paused"    => ("\u23F8", $"{vmName} is paused"),
-                _           => ("\u2139", $"{vmName} — {newStatus}")
-            };
-
-            new ToastContentBuilder()
-                .AddText($"{icon} {title}")
-                .AddText($"VMID {vmid} · {oldStatus} \u2192 {newStatus}")
-                .AddAttributionText("Proxmox Desktop")
-                .Show();
-        }
-        catch { /* never crash the app for a notification */ }
+        // Desktop toast notifications are intentionally disabled in the WPF build.
     }
 
     public static void ClearHistory()
     {
-        try { ToastNotificationManagerCompat.History.Clear(); }
-        catch { }
+        // No notification history is kept by the WPF build.
     }
 }
