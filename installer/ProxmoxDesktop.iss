@@ -1,6 +1,6 @@
 #define MyAppName "Proxmox Desktop"
 #ifndef MyAppVersion
-  #define MyAppVersion GetEnv("APP_VERSION")
+  #define MyAppVersion "1.0"
 #endif
 #define MyAppPublisher "Kofysh"
 #define MyAppExeName "ProxmoxDesktop.exe"
@@ -26,7 +26,6 @@ ChangesAssociations=no
 
 [Files]
 Source: "..\output\portable\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\output\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
@@ -36,5 +35,4 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Additional shortcuts:"
 
 [Run]
-Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing Microsoft Visual C++ Runtime..."; Flags: waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent

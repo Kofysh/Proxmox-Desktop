@@ -6,10 +6,11 @@ on:
       - master
     tags:
       - 'v*.*.*'
+      - '1.0'
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release tag (example: v2.2.0)'
+        description: 'Release tag (example: 1.0)'
         required: true
         type: string
 
@@ -82,42 +83,6 @@ jobs:
             -p:WindowsAppSDKSelfContained=true `
             -o output/portable
 
-      - name: Build portable self-extracting executable
-        if: steps.resolve.outputs.proceed == 'true'
-        shell: pwsh
-        run: |
-          choco install 7zip --no-progress --yes
-          $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
-          $sfx = 'C:\Program Files\7-Zip\7z.sfx'
-          $archive = 'output\portable.7z'
-          $config = 'output\portable-sfx-config.txt'
-          $portable = 'output\ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-portable-win-x64.exe'
-
-          Invoke-WebRequest `
-            -Uri https://aka.ms/vs/17/release/vc_redist.x64.exe `
-            -OutFile output\portable\vc_redist.x64.exe
-          & $sevenZip a -t7z -mx=9 $archive '.\output\portable\*' | Out-Host
-          if ($LASTEXITCODE -ne 0) { throw "7-Zip archive creation failed" }
-
-          @"
-          ;!@Install@!UTF-8!
-          Title="Proxmox Desktop"
-          RunProgram="cmd.exe /c vc_redist.x64.exe /install /quiet /norestart & ProxmoxDesktop.exe"
-          ;!@InstallEnd@!
-          "@ | Set-Content -LiteralPath $config -Encoding utf8NoBOM
-
-          cmd /c "copy /b `"$sfx`" + `"$config`" + `"$archive`" `"$portable`""
-          if ($LASTEXITCODE -ne 0) { throw "Self-extracting executable creation failed" }
-          Remove-Item $archive, $config
-
-      - name: Download Visual C++ runtime
-        if: steps.resolve.outputs.proceed == 'true'
-        shell: pwsh
-        run: |
-          Invoke-WebRequest `
-            -Uri https://aka.ms/vs/17/release/vc_redist.x64.exe `
-            -OutFile output/vc_redist.x64.exe
-
       - name: Install Inno Setup
         if: steps.resolve.outputs.proceed == 'true'
         shell: pwsh
@@ -126,11 +91,10 @@ jobs:
       - name: Build Windows installer
         if: steps.resolve.outputs.proceed == 'true'
         shell: pwsh
-        env:
-          APP_VERSION: ${{ steps.resolve.outputs.tag }}
         run: |
-          $env:Path += ';C:\Program Files (x86)\Inno Setup 6'
-          iscc /DMyAppVersion=${{ steps.resolve.outputs.tag }} installer/ProxmoxDesktop.iss
+        $env:Path += ';C:\Program Files (x86)\Inno Setup 6'
+        $version = "${{ steps.resolve.outputs.tag }}".TrimStart('v')
+        iscc "/DMyAppVersion=$version" installer/ProxmoxDesktop.iss
 
       - name: Create GitHub Release
         if: steps.resolve.outputs.proceed == 'true'
@@ -142,17 +106,13 @@ jobs:
             ## 📦 Installation
             **Installer:** download `ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-setup-win-x64.exe` and follow the wizard.
 
-            **Portable:** download `ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-portable-win-x64.exe` and run it directly. The application extracts its files temporarily and cleans them up when it closes.
-
-            > Both packages are self-contained — no .NET installation required.
+            > The installer is self-contained — no .NET installation required.
 
             ## Requirements
             - Windows 10 (build 17763+) or Windows 11
             - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) *(pre-installed on Windows 11)*
             - [Virt-Viewer + UsbDk](https://www.spice-space.org/download.html) *(SPICE only)*
-          files: |
-            output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-portable-win-x64.exe
-            output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-setup-win-x64.exe
+          files: output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-setup-win-x64.exe
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(steps.resolve.outputs.tag, '-beta') || contains(steps.resolve.outputs.tag, '-rc') }}
