@@ -93,13 +93,16 @@ jobs:
           $config = 'output\portable-sfx-config.txt'
           $portable = 'output\ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-portable-win-x64.exe'
 
+          Invoke-WebRequest `
+            -Uri https://aka.ms/vs/17/release/vc_redist.x64.exe `
+            -OutFile output\portable\vc_redist.x64.exe
           & $sevenZip a -t7z -mx=9 $archive '.\output\portable\*' | Out-Host
           if ($LASTEXITCODE -ne 0) { throw "7-Zip archive creation failed" }
 
           @"
           ;!@Install@!UTF-8!
           Title="Proxmox Desktop"
-          RunProgram="ProxmoxDesktop.exe"
+          RunProgram="cmd.exe /c vc_redist.x64.exe /install /quiet /norestart & ProxmoxDesktop.exe"
           ;!@InstallEnd@!
           "@ | Set-Content -LiteralPath $config -Encoding utf8NoBOM
 

@@ -13,8 +13,8 @@
     <EnableMsixTooling>false</EnableMsixTooling>
     <RootNamespace>ProxmoxDesktop</RootNamespace>
     <AssemblyName>ProxmoxDesktop</AssemblyName>
-    <AssemblyVersion>2.2.4.0</AssemblyVersion>
-    <InformationalVersion>2.2.4</InformationalVersion>
+    <AssemblyVersion>2.2.5.0</AssemblyVersion>
+    <InformationalVersion>2.2.5</InformationalVersion>
     <ApplicationIcon>..\Resources\Icons\default-icon.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
