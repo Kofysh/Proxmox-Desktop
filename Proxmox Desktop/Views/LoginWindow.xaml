@@ -1,26 +1,4 @@
 <Window x:Class="ProxmoxDesktop.Views.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Proxmox Desktop">
-    <Grid x:Name="ContentRoot">
-        <StackPanel Margin="40" Spacing="12">
-            <TextBlock Text="PROXMOX DESKTOP" FontSize="28" FontWeight="Bold"
-                       Foreground="#FF3B82F6"/>
-            <TextBlock Text="Manage your virtual infrastructure" FontSize="16"/>
-            <TextBlock Text="Connect to a Proxmox VE cluster to continue." TextWrapping="Wrap"/>
-            <TextBox Header="Server address" Text="{Binding Server, Mode=TwoWay}"/>
-            <TextBox Header="Port" Text="{Binding Port, Mode=TwoWay}"/>
-            <ComboBox Header="Realm" ItemsSource="{Binding Realms}"
-                      SelectedItem="{Binding SelectedRealm, Mode=TwoWay}"/>
-            <TextBox Header="Username" Text="{Binding Username, Mode=TwoWay}"/>
-            <PasswordBox Header="Password" PasswordChanged="PasswordBox_PasswordChanged"/>
-            <TextBox Header="TOTP code" Text="{Binding Otp, Mode=TwoWay}"/>
-            <TextBox Header="API token ID" Text="{Binding TokenId, Mode=TwoWay}"/>
-            <PasswordBox Header="API token secret" PasswordChanged="TokenSecretBox_PasswordChanged"/>
-            <CheckBox Content="Ignore SSL certificate" IsChecked="{Binding SkipSsl, Mode=TwoWay}"/>
-            <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap"/>
-            <Button Content="Connect" Command="{Binding LoginCommand}" Height="44"/>
-            <ProgressRing IsActive="{Binding IsBusy}" Width="24" Height="24"/>
-        </StackPanel>
-    </Grid>
-</Window>
+        Title="Proxmox Desktop"/>
