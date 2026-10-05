@@ -48,7 +48,7 @@ L'interface est construite avec **WinUI 3** et **Windows App SDK 2.5.1**. Le pro
 | Microsoft Visual C++ Redistributable x64 | Requis par Windows App SDK ; inclus dans l'installateur |
 | Virt-Viewer + UsbDk | Requis uniquement pour SPICE |
 
-Les versions publiées sont autonomes : l'utilisateur n'a pas besoin d'installer le runtime .NET ou Windows App SDK. L'installateur installe également le runtime Microsoft Visual C++ x64. Pour la version portable, installez-le depuis [Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe) si nécessaire. WebView2 reste nécessaire pour les consoles web.
+Les versions publiées sont autonomes : l'utilisateur n'a pas besoin d'installer le runtime .NET ou Windows App SDK. L'installateur installe également le runtime Microsoft Visual C++ x64. La version portable est distribuée sous la forme d'un exécutable auto-extractible unique : lancez-le directement, sans décompresser de fichiers. Elle utilise un dossier temporaire supprimé à la fermeture. Pour le mode portable, installez le runtime Visual C++ x64 depuis [Microsoft](https://aka.ms/vs/17/release/vc_redist.x64.exe) si nécessaire. WebView2 reste nécessaire pour les consoles web.
 
 ## Installation
 
