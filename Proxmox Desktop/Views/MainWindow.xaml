@@ -1,44 +1,101 @@
-<Window x:Class="ProxmoxDesktop.Views.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Proxmox Desktop" Width="1440" Height="900"
-        WindowStartupLocation="CenterScreen">
-    <Grid Background="#121820">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="230"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-        <StackPanel Grid.Column="0" Background="#1B2530" Margin="0">
-            <TextBlock Text="PROXMOX" FontSize="24" FontWeight="Bold" Foreground="#4EA1FF" Margin="16,16,16,0"/>
-            <TextBlock Text="Desktop" FontSize="16" Foreground="#B8C4D4" Margin="0,0,0,24"/>
-            <Button Content="Overview" Click="Section_Click"/><Button Content="Virtual machines" Click="Section_Click"/>
-            <Button Content="Containers" Click="Section_Click"/><Button Content="Nodes" Click="Section_Click"/>
-            <Button Content="Storage" Click="Section_Click"/><Button Content="Network" Click="Section_Click"/>
-            <Button Content="Backups" Click="Section_Click"/><Button Content="Tasks and logs" Click="Section_Click"/>
-            <Button Content="Users and permissions" Click="Section_Click"/>
-            <Separator Margin="0,16"/><Button Content="Add server" Command="{Binding AddServerCommand}"/>
-            <Button Content="Refresh" Command="{Binding RefreshCommand}"/><Button Content="Sign out" Command="{Binding LogoutCommand}"/>
-        </StackPanel>
-        <Grid Grid.Column="1" Margin="28">
-            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-            <StackPanel><TextBlock x:Name="SectionTitle" Text="Overview" FontSize="30" FontWeight="Bold" Foreground="White"/>
-                <TextBlock Text="Manage your Proxmox VE infrastructure" Foreground="#B8C4D4"/></StackPanel>
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,24,0,18">
-                <TextBox Width="360" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Text="{Binding TotalCount, StringFormat={}Machines: {0}}" Foreground="#B8C4D4" Margin="24,8"/>
-                <TextBlock Text="{Binding RunningCount, StringFormat={}Running: {0}}" Foreground="#6DDC8A" Margin="12,8"/>
-                <TextBlock Text="{Binding StoppedCount, StringFormat={}Stopped: {0}}" Foreground="#FF8A8A" Margin="12,8"/>
+<ui:UiWindow x:Class="ProxmoxDesktop.Views.MainWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             Title="Proxmox Desktop"
+             Width="1200"
+             Height="654"
+             MinWidth="980"
+             MinHeight="560"
+             Background="{ui:ThemeResource ApplicationBackgroundBrush}"
+             ExtendsContentIntoTitleBar="True"
+             WindowBackdropType="Mica"
+             WindowCornerPreference="Round"
+             WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid Grid.Row="0" Height="52" Margin="78,0,12,0">
+            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="PROXMOX DESKTOP" FontSize="16" FontWeight="SemiBold"/>
+                <TextBlock Text="Virtual infrastructure manager" FontSize="11" Opacity="0.65"/>
             </StackPanel>
-            <ListView Grid.Row="2" ItemsSource="{Binding FilteredMachines}" Background="Transparent" BorderThickness="0">
-                <ListView.ItemTemplate><DataTemplate><Border Background="#1B2530" CornerRadius="8" Padding="16" Margin="0,0,0,10">
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <StackPanel><TextBlock Text="{Binding Name}" FontSize="18" FontWeight="SemiBold" Foreground="White"/>
-                            <TextBlock Text="{Binding ServerName}" Foreground="#B8C4D4"/><TextBlock Text="{Binding Status}" Foreground="#B8C4D4"/></StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Button Content="Start" Command="{Binding DataContext.StartCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
-                            <Button Content="Stop" Command="{Binding DataContext.ForceStopCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
-                            <Button Content="Console" Command="{Binding DataContext.OpenNoVncCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}"/>
-                        </StackPanel>
-                    </Grid>
-                </Border></DataTemplate></ListView.ItemTemplate>
-            </ListView>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="{Binding TotalCount, StringFormat={} {0} machines}" Margin="0,0,18,0" Opacity="0.7"/>
+                <Button Content="Refresh" Command="{Binding RefreshCommand}" Padding="14,6"/>
+            </StackPanel>
+        </Grid>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <ui:NavigationStore x:Name="RootNavigation"
+                                Grid.Column="0"
+                                Margin="6,0,8,1"
+                                SelectedPageIndex="0"
+                                TransitionDuration="300"
+                                TransitionType="None">
+                <ui:NavigationStore.Items>
+                    <ui:NavigationItem Content="Overview" ToolTip="Overview" Click="Section_Click"/>
+                    <ui:NavigationSeparator/>
+                    <ui:NavigationItem Content="Virtual machines" ToolTip="Virtual machines" Click="Section_Click"/>
+                    <ui:NavigationItem Content="Containers" ToolTip="Containers" Click="Section_Click"/>
+                    <ui:NavigationItem Content="Nodes" ToolTip="Nodes" Click="Section_Click"/>
+                    <ui:NavigationItem Content="Storage" ToolTip="Storage" Click="Section_Click"/>
+                    <ui:NavigationItem Content="Network" ToolTip="Network" Click="Section_Click"/>
+                    <ui:NavigationItem Content="Backups" ToolTip="Backups" Click="Section_Click"/>
+                    <ui:NavigationItem Content="Tasks and logs" ToolTip="Tasks and logs" Click="Section_Click"/>
+                    <ui:NavigationItem Content="Users and permissions" ToolTip="Users and permissions" Click="Section_Click"/>
+                    <ui:NavigationSeparator/>
+                    <ui:NavigationItem Content="Add server" ToolTip="Add server" Click="AddServer_Click"/>
+                    <ui:NavigationItem Content="Sign out" ToolTip="Sign out" Click="Logout_Click"/>
+                </ui:NavigationStore.Items>
+            </ui:NavigationStore>
+            <Grid Grid.Column="1" Margin="18,12,24,18">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock x:Name="SectionTitle" Text="Overview" FontSize="28" FontWeight="SemiBold"/>
+                    <TextBlock Text="Monitor and control your Proxmox VE clusters" Opacity="0.65" Margin="0,2,0,0"/>
+                </StackPanel>
+                <Grid Grid.Row="1" Margin="0,20,0,14">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBox Width="330" HorizontalAlignment="Left" Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" Padding="12,8"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Border Background="#244A38" CornerRadius="6" Padding="12,7" Margin="8,0,0,0">
+                            <TextBlock Foreground="#8BE6A8" Text="{Binding RunningCount, StringFormat={}Running  {0}}"/>
+                        </Border>
+                        <Border Background="#4A292D" CornerRadius="6" Padding="12,7" Margin="8,0,0,0">
+                            <TextBlock Foreground="#FF9DA3" Text="{Binding StoppedCount, StringFormat={}Stopped  {0}}"/>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+                <ListView Grid.Row="2" ItemsSource="{Binding FilteredMachines}" BorderThickness="0" Background="Transparent">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="8" Padding="14" Margin="0,0,0,8">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold"/>
+                                        <StackPanel Orientation="Horizontal" Opacity="0.62">
+                                            <TextBlock Text="{Binding ServerName}"/>
+                                            <TextBlock Text="  •  VMID "/>
+                                            <TextBlock Text="{Binding Vmid}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Status}" Opacity="0.72" Margin="0,5,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Content="Start" Command="{Binding DataContext.StartCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="12,6"/>
+                                        <Button Content="Stop" Command="{Binding DataContext.ForceStopCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="12,6" Margin="6,0,0,0"/>
+                                        <Button Content="Console" Command="{Binding DataContext.OpenNoVncCommand, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}" Padding="12,6" Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Grid>
         </Grid>
     </Grid>
-</Window>
+</ui:UiWindow>
