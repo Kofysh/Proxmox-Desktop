@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using ProxmoxDesktop.Api;
 using ProxmoxDesktop.Api.Models;
 using ProxmoxDesktop.Services;
+using Microsoft.UI.Dispatching;
 
 namespace ProxmoxDesktop.ViewModels;
 
@@ -16,7 +17,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>One entry per connected Proxmox cluster.</summary>
     public ObservableCollection<ServerConnection> Connections { get; } = [];
-    public ActivityLogService Activity { get; } = new();
+    public ActivityLogService Activity { get; }
+    private readonly DispatcherQueue? _dispatcher;
 
     [ObservableProperty] private ObservableCollection<MachineData> machines         = [];
     [ObservableProperty] private ObservableCollection<NodeGroup>   groupedMachines  = [];
@@ -49,8 +51,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnSelectedTagChanged(string? value)  => ApplyFilter();
     partial void OnSelectedConnectionChanged(ServerConnection? value) { SelectedNode = null; ApplyFilter(); }
 
-    public MainViewModel(ApiClient api, int refreshSeconds = 60)
+    public MainViewModel(ApiClient api, int refreshSeconds = 60, DispatcherQueue? dispatcher = null)
     {
+        _dispatcher = dispatcher;
+        Activity = new ActivityLogService(dispatcher);
         Connections.Add(new ServerConnection(api.Host, api));
         var seconds = refreshSeconds < 10 ? 10 : refreshSeconds;
         _refreshTimer = new PeriodicTimer(TimeSpan.FromSeconds(seconds));
@@ -96,7 +100,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 }
             _previousStatuses = all.ToDictionary(m => $"{m.ServerName}:{m.Vmid}", m => m.Status);
 
-            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            RunOnUi(() =>
             {
                 Machines.Clear();
                 foreach (var m in all) Machines.Add(m);
@@ -109,8 +113,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 StoppedCount = all.Count(m => !m.IsRunning);
                 VmCount      = all.Count(m => !m.IsLxc);
                 LxcCount     = all.Count(m => m.IsLxc);
+                ApplyFilter();
             });
-            ApplyFilter();
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) { StatusMessage = $"Load error: {ex.Message}"; OnNotify?.Invoke(StatusMessage); }
@@ -234,7 +238,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         var filtered = Sort(source).ToList();
 
-        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+        RunOnUi(() =>
         {
             FilteredMachines = new ObservableCollection<MachineData>(filtered);
             GroupedMachines  = new ObservableCollection<NodeGroup>(
@@ -260,6 +264,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         5 => src.OrderByDescending(m => m.Uptime).ThenBy(m => m.Name),
         _ => src.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase),
     };
+
+    private void RunOnUi(Action action)
+    {
+        if (_dispatcher is null || _dispatcher.HasThreadAccess) action();
+        else _dispatcher.TryEnqueue(() => action());
+    }
 
     public event Action<MachineData, string>? OnOpenConsole;
     public event Action<SpiceObject>?         OnOpenSpice;

@@ -1,36 +1,25 @@
-using System.Windows;
-using MaterialDesignThemes.Wpf;
-using ProxmoxDesktop.Config;
 using ProxmoxDesktop.Services;
+using ProxmoxDesktop.Views;
+using ProxmoxDesktop.Api;
+using Microsoft.UI.Xaml;
 
 namespace ProxmoxDesktop;
 
 public partial class App : Application
 {
-    protected override void OnStartup(StartupEventArgs e)
+    public static Window? MainWindow { get; private set; }
+
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        base.OnStartup(e);
         NotificationService.Enable();
-        ApplySavedTheme();
-        new Views.LoginWindow().Show();
+        MainWindow = new LoginWindow();
+        MainWindow.Activate();
     }
 
-    private static void ApplySavedTheme()
+    public static void ShowMainWindow(IApiClient api)
     {
-        try
-        {
-            var cfg    = new ConfigurationService().Config;
-            var helper = new PaletteHelper();
-            var theme  = helper.GetTheme();
-            theme.SetBaseTheme(cfg.IsDarkTheme ? BaseTheme.Dark : BaseTheme.Light);
-            helper.SetTheme(theme);
-        }
-        catch { /* fall back to the default theme from App.xaml */ }
-    }
-
-    protected override void OnExit(ExitEventArgs e)
-    {
-        NotificationService.Disable();
-        base.OnExit(e);
+        var window = new MainWindow(api);
+        MainWindow = window;
+        window.Activate();
     }
 }

@@ -1,6 +1,5 @@
-using System.Windows;
-using System.Windows.Input;
-using MaterialDesignThemes.Wpf;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using ProxmoxDesktop.Api;
 using ProxmoxDesktop.Config;
 using ProxmoxDesktop.Console;
@@ -8,64 +7,46 @@ using ProxmoxDesktop.ViewModels;
 
 namespace ProxmoxDesktop.Views;
 
-public partial class MainWindow : Window
+public sealed partial class MainWindow : Window
 {
-    public static MainWindow? Instance { get; private set; }
-    public ISnackbarMessageQueue SnackbarService => MainSnackbar.MessageQueue!;
-
-    private readonly MainViewModel        _vm;
+    private readonly MainViewModel _vm;
     private readonly ConfigurationService _config = new();
-    private bool _isDark;
 
     public MainWindow(IApiClient api)
     {
         InitializeComponent();
-        Instance = this;
+        _vm = new MainViewModel((ApiClient)api, _config.Config.RefreshIntervalSeconds,
+            Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
+        Root.DataContext = _vm;
+        _vm.OnLogout += Logout;
+        _vm.OnOpenConsole += (machine, url) => new ConsoleWindow(machine, url).Activate();
+        _vm.OnOpenSpice += cfg => _ = SpiceLauncher.LaunchAsync(cfg);
+        _vm.OnNotify += message => _ = ShowMessageAsync(message);
+        _vm.OnRequestAddServer += () => new LoginWindow(_vm.AddConnection).Activate();
+        Closed += (_, _) => { _vm.Dispose(); };
+        Activated += async (_, _) => { if (_vm.Machines.Count == 0) await _vm.RefreshAsync(); };
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1440, 900));
+    }
 
-        _isDark = _config.Config.IsDarkTheme;
-        ApplyTheme();
-
-        _vm         = new MainViewModel((ApiClient)api, _config.Config.RefreshIntervalSeconds);
-        DataContext = _vm;
-
-        _vm.OnLogout      += () => { _vm.Dispose(); Instance = null; new LoginWindow().Show(); Close(); };
-        _vm.OnOpenConsole += (m, url) => new ConsoleWindow(m, url).Show();
-        _vm.OnOpenSpice   += async cfg => await SpiceLauncher.LaunchAsync(cfg);
-        _vm.OnNotify      += msg => Dispatcher.Invoke(() => SnackbarService.Enqueue(msg));
-        _vm.OnRequestAddServer += () =>
-        {
-            var dlg = new LoginWindow(connectedApi => _vm.AddConnection(connectedApi)) { Owner = this };
-            dlg.ShowDialog();
-        };
-
-        Loaded += async (_, _) => await _vm.RefreshAsync();
-        Closed += (_, _) => { _vm.Dispose(); Instance = null; };
+    private void Logout()
+    {
+        _vm.Dispose();
+        var login = new LoginWindow();
+        login.Activate();
+        Close();
     }
 
     private void OnThemeToggle(object sender, RoutedEventArgs e)
     {
-        _isDark = !_isDark;
-        ApplyTheme();
-        _config.Config.IsDarkTheme = _isDark;
+        _config.Config.IsDarkTheme = !_config.Config.IsDarkTheme;
         _config.Save();
+        Root.RequestedTheme = _config.Config.IsDarkTheme ? ElementTheme.Dark : ElementTheme.Light;
     }
 
-    private void ApplyTheme()
+    private async Task ShowMessageAsync(string message)
     {
-        var helper = new PaletteHelper();
-        var theme  = helper.GetTheme();
-        theme.SetBaseTheme(_isDark ? BaseTheme.Dark : BaseTheme.Light);
-        helper.SetTheme(theme);
-        ThemeIcon.Kind = _isDark ? PackIconKind.WeatherNight : PackIconKind.WeatherSunny;
+        var dialog = new ContentDialog { Title = "Proxmox Desktop", Content = message, CloseButtonText = "OK", XamlRoot = Root.XamlRoot };
+        await dialog.ShowAsync();
     }
 
-    private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
-        {
-            SearchBox.Focus();
-            SearchBox.SelectAll();
-            e.Handled = true;
-        }
-    }
 }

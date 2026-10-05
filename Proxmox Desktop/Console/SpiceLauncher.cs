@@ -9,7 +9,7 @@ public static class SpiceLauncher
     public static async Task LaunchAsync(SpiceObject spice)
     {
         var virt = FindVirtViewer();
-        if (virt is null) { System.Windows.MessageBox.Show("virt-viewer not found. Install it to use SPICE.", "SPICE"); return; }
+        if (virt is null) { System.Diagnostics.Debug.WriteLine("virt-viewer not found. Install it to use SPICE."); return; }
 
         var tmp = Path.GetTempFileName() + ".vv";
         await File.WriteAllTextAsync(tmp, BuildVvFile(spice), Encoding.UTF8);

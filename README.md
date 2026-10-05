@@ -2,11 +2,11 @@
 
 <div align="center">
 
-**Native Windows client for Proxmox VE &mdash; WPF &middot; .NET 9 &middot; Material Design &middot; MVVM**
+**Native Windows client for Proxmox VE &mdash; WinUI 3 &middot; Windows App SDK 2.5 &middot; .NET 10 LTS &middot; MVVM**
 
 [![Build](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/build.yml/badge.svg)](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/build.yml)
 [![Release](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/release.yml/badge.svg)](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/release.yml)
-[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-10%20LTS-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D4?style=flat-square&logo=windows)]()
 [![Proxmox VE](https://img.shields.io/badge/Proxmox-VE-E57000?style=flat-square&logo=proxmox)](https://www.proxmox.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
@@ -23,7 +23,7 @@
 
 **Proxmox Desktop** is a native Windows client for Proxmox VE. It gives quick access to all your virtual machines and LXC containers across a cluster, without going through the WebGUI &mdash; directly from your Windows desktop.
 
-Built with **WPF** and **Material Design**, using an **MVVM** architecture (CommunityToolkit) and a fully async HTTP client with automatic retry.
+Built with **WinUI 3** and the **Windows App SDK**, using an **MVVM** architecture (CommunityToolkit) and a fully async HTTP client with automatic retry.
 
 ---
 
@@ -60,6 +60,8 @@ Built with **WPF** and **Material Design**, using an **MVVM** architecture (Comm
 | Component | Version | Link |
 |-----------|---------|------|
 | Windows | 10 (build 17763+) or 11 | &mdash; |
+| .NET | 10 LTS (self-contained) | [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0) |
+| Windows App SDK | 2.5.1 (bundled self-contained) | [Documentation](https://learn.microsoft.com/windows/apps/windows-app-sdk/) |
 | WebView2 Runtime | Latest *(pre-installed on Windows 11)* | [microsoft.com/edge/webview2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) |
 | Virt-Viewer + UsbDk *(SPICE only)* | Latest | [spice-space.org](https://www.spice-space.org/download.html) |
 
@@ -71,9 +73,12 @@ Built with **WPF** and **Material Design**, using an **MVVM** architecture (Comm
 
 ### From releases
 
-1. Download the latest `.zip` from the [Releases](../../releases) page
-2. Extract anywhere
-3. Run `ProxmoxDesktop.exe`
+Choose one of the two Windows packages from the [Releases](../../releases) page:
+
+- **Installer (`*-setup-win-x64.exe`)** — installs Proxmox Desktop for the current Windows user and creates Start Menu/desktop shortcuts.
+- **Portable (`*-portable-win-x64.zip`)** — extract it anywhere (including a USB drive) and run `ProxmoxDesktop.exe`; the Windows App SDK runtime is included; no installation or administrator rights are required.
+
+Both packages include the .NET runtime. WebView2 is still required for the integrated web consoles.
 
 ### From source
 
@@ -152,7 +157,7 @@ For a dedicated account with minimal rights:
 
 ```
 Proxmox-Desktop/
-├── Proxmox Desktop/               # Main WPF project
+├── Proxmox Desktop/               # Main WinUI 3 / Windows App SDK project
 │   ├── Api/
 │   │   ├── IApiClient.cs          # Interface (mockable for tests)
 │   │   ├── ApiClient.cs           # Async HTTP client + retry
@@ -164,11 +169,7 @@ Proxmox-Desktop/
 │   │   └── ConfigurationService.cs # JSON persistence + DPAPI
 │   ├── Console/
 │   │   └── SpiceLauncher.cs       # Virt-Viewer launcher
-│   ├── Controls/
-│   │   ├── MachineCard.xaml       # VM/LXC card
-│   │   └── StatsBar.xaml          # Dashboard stats bar
 │   ├── Converters/                # StatusToBrush, BytesToReadable...
-│   ├── Helpers/                   # VisualTreeHelperExtensions
 │   ├── Services/
 │   │   └── NotificationService.cs # Native Windows Toast
 │   ├── ViewModels/
@@ -182,15 +183,16 @@ Proxmox-Desktop/
 │   └── ProxmoxDesktop.csproj
 ├── Screenshots/
 ├── Resources/
+├── installer/
 ├── ProxmoxDesktop.sln
 └── .github/workflows/
     ├── build.yml                  # Build + artifact on every push / PR
-    └── release.yml                # Release on v*.*.* tag or manual trigger
+    └── release.yml                # Installer + portable release on v*.*.* tag or manual trigger
 ```
 
 **Tech stack:**
-- UI: WPF + [MaterialDesignThemes 5.1](https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit)
-- Architecture: MVVM &mdash; [CommunityToolkit.Mvvm 8.4](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
+- UI: WinUI 3 + [Windows App SDK 2.5.1](https://learn.microsoft.com/windows/apps/windows-app-sdk/)
+- Architecture: MVVM &mdash; [CommunityToolkit.Mvvm 8.4.2](https://learn.microsoft.com/en-us/dotnet/communitytoolkit/mvvm/)
 - Web console: WebView2
 - HTTP: `HttpClient` fully async/await + retry
 - Notifications: `Microsoft.Toolkit.Uwp.Notifications`

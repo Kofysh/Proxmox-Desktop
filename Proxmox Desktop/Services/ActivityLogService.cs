@@ -1,64 +1,42 @@
 using System.Collections.ObjectModel;
-using System.Windows;
-using System.Windows.Media;
-using MaterialDesignThemes.Wpf;
+using Microsoft.UI.Dispatching;
 
 namespace ProxmoxDesktop.Services;
 
 public enum ActivityLevel { Info, Success, Warning, Error }
 
-/// <summary>A single, immutable line in the activity log (UI-facing).</summary>
-public sealed record ActivityEntry(DateTime Time, PackIconKind Icon, Brush Color, string Title, string? Detail)
+public sealed record ActivityEntry(DateTime Time, string Icon, string Title, string? Detail)
 {
     public string TimeText => Time.ToString("HH:mm:ss");
 }
 
-/// <summary>
-/// In-memory, bounded activity log. New entries are inserted at the top and the
-/// collection is always mutated on the UI thread so it can be bound directly.
-/// </summary>
 public sealed class ActivityLogService
 {
     private const int MaxEntries = 200;
-
+    private readonly DispatcherQueue? _dispatcher;
     public ObservableCollection<ActivityEntry> Entries { get; } = [];
 
-    public void Info(string title, string? detail = null)    => Add(ActivityLevel.Info,    title, detail);
+    public ActivityLogService(DispatcherQueue? dispatcher = null) => _dispatcher = dispatcher;
+    public void Info(string title, string? detail = null) => Add(ActivityLevel.Info, title, detail);
     public void Success(string title, string? detail = null) => Add(ActivityLevel.Success, title, detail);
     public void Warning(string title, string? detail = null) => Add(ActivityLevel.Warning, title, detail);
-    public void Error(string title, string? detail = null)   => Add(ActivityLevel.Error,   title, detail);
+    public void Error(string title, string? detail = null) => Add(ActivityLevel.Error, title, detail);
 
     public void Add(ActivityLevel level, string title, string? detail = null)
     {
-        var (icon, color) = level switch
+        var icon = level switch { ActivityLevel.Success => "✓", ActivityLevel.Warning => "!", ActivityLevel.Error => "×", _ => "i" };
+        void Update()
         {
-            ActivityLevel.Success => (PackIconKind.CheckCircle,       Rgb(76, 175, 80)),
-            ActivityLevel.Warning => (PackIconKind.AlertCircle,       Rgb(255, 152, 0)),
-            ActivityLevel.Error   => (PackIconKind.CloseCircle,       Rgb(244, 67, 54)),
-            _                     => (PackIconKind.InformationOutline, Rgb(33, 150, 243)),
-        };
-
-        var entry = new ActivityEntry(DateTime.Now, icon, color, title, detail);
-        OnUi(() =>
-        {
-            Entries.Insert(0, entry);
+            Entries.Insert(0, new ActivityEntry(DateTime.Now, icon, title, detail));
             while (Entries.Count > MaxEntries) Entries.RemoveAt(Entries.Count - 1);
-        });
+        }
+        if (_dispatcher is null || _dispatcher.HasThreadAccess) Update();
+        else _dispatcher.TryEnqueue(Update);
     }
 
-    public void Clear() => OnUi(Entries.Clear);
-
-    private static void OnUi(Action action)
+    public void Clear()
     {
-        var app = Application.Current;
-        if (app is not null && !app.Dispatcher.CheckAccess()) app.Dispatcher.Invoke(action);
-        else action();
-    }
-
-    private static SolidColorBrush Rgb(byte r, byte g, byte b)
-    {
-        var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
-        brush.Freeze();
-        return brush;
+        if (_dispatcher is null || _dispatcher.HasThreadAccess) Entries.Clear();
+        else _dispatcher.TryEnqueue(Entries.Clear);
     }
 }

@@ -25,10 +25,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup .NET 9
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Resolve release tag
         id: resolve
@@ -79,15 +79,30 @@ jobs:
             --self-contained true `
             -p:PublishSingleFile=false `
             -p:PublishReadyToRun=true `
-            -o output/ProxmoxDesktop
+            -p:WindowsAppSDKSelfContained=true `
+            -o output/portable
 
       - name: Create ZIP
         if: steps.resolve.outputs.proceed == 'true'
         shell: pwsh
         run: |
           Compress-Archive `
-            -Path output/ProxmoxDesktop/* `
-            -DestinationPath output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-win-x64.zip
+            -Path output/portable/* `
+            -DestinationPath output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-portable-win-x64.zip
+
+      - name: Install Inno Setup
+        if: steps.resolve.outputs.proceed == 'true'
+        shell: pwsh
+        run: choco install innosetup --no-progress --yes
+
+      - name: Build Windows installer
+        if: steps.resolve.outputs.proceed == 'true'
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.resolve.outputs.tag }}
+        run: |
+          $env:Path += ';C:\Program Files (x86)\Inno Setup 6'
+          iscc /DMyAppVersion=${{ steps.resolve.outputs.tag }} installer/ProxmoxDesktop.iss
 
       - name: Create GitHub Release
         if: steps.resolve.outputs.proceed == 'true'
@@ -97,17 +112,19 @@ jobs:
           name: "Proxmox Desktop ${{ steps.resolve.outputs.tag }}"
           body: |
             ## 📦 Installation
-            1. Download `ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-win-x64.zip`
-            2. Extract anywhere
-            3. Run `ProxmoxDesktop.exe`
+            **Installer:** download `ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-setup-win-x64.exe` and follow the wizard.
 
-            > Portable — no installation required. .NET runtime included.
+            **Portable:** download `ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-portable-win-x64.zip`, extract anywhere, then run `ProxmoxDesktop.exe`.
+
+            > Both packages are self-contained — no .NET installation required.
 
             ## Requirements
             - Windows 10 (build 17763+) or Windows 11
             - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) *(pre-installed on Windows 11)*
             - [Virt-Viewer + UsbDk](https://www.spice-space.org/download.html) *(SPICE only)*
-          files: output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-win-x64.zip
+          files: |
+            output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-portable-win-x64.zip
+            output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-setup-win-x64.exe
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(steps.resolve.outputs.tag, '-beta') || contains(steps.resolve.outputs.tag, '-rc') }}
