@@ -6,6 +6,26 @@
     <Application.Resources>
         <ResourceDictionary>
             <XamlControlsResources x:Key="XamlControlsResources" xmlns="using:Microsoft.UI.Xaml.Controls"/>
+            <Style x:Key="TitleTextBlockStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="28"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+            <Style x:Key="SubtitleTextBlockStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="16"/>
+                <Setter Property="Opacity" Value="0.75"/>
+            </Style>
+            <Style x:Key="CaptionTextBlockStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+            </Style>
+            <Style x:Key="AccentButtonStyle" TargetType="Button">
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <SolidColorBrush Color="{ThemeResource SystemAccentColor}"/>
+                    </Setter.Value>
+                </Setter>
+                <Setter Property="Foreground" Value="White"/>
+            </Style>
             <converters:NotNullToVisibilityConverter x:Key="NotNullToVisibility"/>
             <converters:NotNullToBoolConverter x:Key="NotNullToBool"/>
             <converters:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
