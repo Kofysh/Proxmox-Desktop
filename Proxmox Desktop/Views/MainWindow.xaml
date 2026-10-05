@@ -55,6 +55,16 @@
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="12" Padding="12">
                 <ScrollViewer>
                     <StackPanel Spacing="4">
+                        <TextBlock Text="PROXMOX" FontSize="12" FontWeight="SemiBold" Opacity=".65" Margin="8,4"/>
+                        <Button Content="Overview" Click="OnSectionClick" Tag="Overview" HorizontalContentAlignment="Left"/>
+                        <Button Content="Virtual machines" Click="OnSectionClick" Tag="Virtual machines" HorizontalContentAlignment="Left"/>
+                        <Button Content="Containers" Click="OnSectionClick" Tag="Containers" HorizontalContentAlignment="Left"/>
+                        <Button Content="Nodes" Click="OnSectionClick" Tag="Nodes" HorizontalContentAlignment="Left"/>
+                        <Button Content="Storage" Click="OnSectionClick" Tag="Storage" HorizontalContentAlignment="Left"/>
+                        <Button Content="Network" Click="OnSectionClick" Tag="Network" HorizontalContentAlignment="Left"/>
+                        <Button Content="Backups" Click="OnSectionClick" Tag="Backups" HorizontalContentAlignment="Left"/>
+                        <Button Content="Tasks and logs" Click="OnSectionClick" Tag="Tasks and logs" HorizontalContentAlignment="Left"/>
+                        <Button Content="Users and permissions" Click="OnSectionClick" Tag="Users and permissions" HorizontalContentAlignment="Left"/>
                         <TextBlock Text="SERVERS" Style="{StaticResource CaptionTextBlockStyle}" Opacity=".65" Margin="8,4"/>
                         <Button Content="All servers" Command="{Binding ClearServerFilterCommand}" HorizontalContentAlignment="Left"/>
                         <ListView ItemsSource="{Binding Connections}" SelectedItem="{Binding SelectedConnection, Mode=TwoWay}" SelectionMode="Single">
@@ -73,6 +83,8 @@
             <Grid Grid.Column="1">
                 <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,10">
+                    <TextBlock x:Name="SectionTitle" Text="Overview" FontSize="20" FontWeight="SemiBold"
+                               VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <ComboBox Header="Sort by" SelectedIndex="{Binding SortIndex, Mode=TwoWay}" Width="140">
                         <ComboBoxItem Content="Name"/><ComboBoxItem Content="VMID"/><ComboBoxItem Content="CPU"/>
                         <ComboBoxItem Content="RAM"/><ComboBoxItem Content="Status"/><ComboBoxItem Content="Uptime"/>

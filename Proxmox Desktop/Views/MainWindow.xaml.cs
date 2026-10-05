@@ -43,6 +43,19 @@ public sealed partial class MainWindow : Window
         Root.RequestedTheme = _config.Config.IsDarkTheme ? ElementTheme.Dark : ElementTheme.Light;
     }
 
+    private async void OnSectionClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string section }) return;
+
+        SectionTitle.Text = section;
+        if (section is not "Overview" and not "Virtual machines" and not "Containers")
+        {
+            await ShowMessageAsync(
+                $"{section} est prévu dans l'architecture Proxmox Desktop. " +
+                "Les opérations seront ajoutées avec les endpoints API correspondants.");
+        }
+    }
+
     private async Task ShowMessageAsync(string message)
     {
         var dialog = new ContentDialog { Title = "Proxmox Desktop", Content = message, CloseButtonText = "OK", XamlRoot = Root.XamlRoot };

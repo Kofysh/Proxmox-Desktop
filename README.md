@@ -20,6 +20,8 @@
 
 L'interface est construite avec **WinUI 3** et **Windows App SDK 2.5.1**. Le projet utilise **.NET 10 LTS**, le pattern MVVM et un client HTTP asynchrone avec renouvellement automatique des tickets Proxmox.
 
+La navigation prépare les principaux domaines de Proxmox VE : vue d'ensemble, machines virtuelles, conteneurs LXC, nœuds, stockage, réseau, sauvegardes, tâches, journaux et gestion des utilisateurs. Les écrans d'administration seront ajoutés progressivement avec leurs endpoints API dédiés.
+
 ## Fonctionnalités
 
 - Dashboard WinUI 3 avec cartes VM/LXC et vue liste.
