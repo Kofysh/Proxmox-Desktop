@@ -2,8 +2,6 @@ name: Release
 
 on:
   push:
-    branches:
-      - master
     tags:
       - 'v*.*.*'
       - '1.0'
@@ -92,9 +90,9 @@ jobs:
         if: steps.resolve.outputs.proceed == 'true'
         shell: pwsh
         run: |
-        $env:Path += ';C:\Program Files (x86)\Inno Setup 6'
-        $version = "${{ steps.resolve.outputs.tag }}".TrimStart('v')
-        iscc "/DMyAppVersion=$version" installer/ProxmoxDesktop.iss
+          $env:Path += ';C:\Program Files (x86)\Inno Setup 6'
+          $version = "${{ steps.resolve.outputs.tag }}".TrimStart('v')
+          iscc "/DMyAppVersion=$version" installer/ProxmoxDesktop.iss
 
       - name: Create GitHub Release
         if: steps.resolve.outputs.proceed == 'true'
