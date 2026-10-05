@@ -146,6 +146,14 @@ public sealed class ApiClient : IApiClient
         return JsonSerializer.Deserialize<PveListResponse<NodeData>>(json, _json)?.Data ?? [];
     }
 
+    public async Task<List<Dictionary<string, JsonElement>>> GetResourceListAsync(
+        string path, CancellationToken ct = default)
+    {
+        var json = await GetAsync(path, ct);
+        if (json == Sentinel403) return [];
+        return JsonSerializer.Deserialize<PveListResponse<Dictionary<string, JsonElement>>>(json, _json)?.Data ?? [];
+    }
+
     public async Task<List<MachineData>> GetAllMachinesAsync(CancellationToken ct = default)
     {
         var nodes = await GetNodesAsync(ct);

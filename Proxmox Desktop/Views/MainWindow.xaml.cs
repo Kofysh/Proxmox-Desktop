@@ -48,11 +48,59 @@ public sealed partial class MainWindow : Window
         if (sender is not Button { Tag: string section }) return;
 
         SectionTitle.Text = section;
-        if (section is not "Overview" and not "Virtual machines" and not "Containers")
+        if (section is "Overview" or "Virtual machines" or "Containers")
+            return;
+
+        var connection = _vm.Connections.FirstOrDefault();
+        if (connection is null) return;
+
+        var path = section switch
         {
-            await ShowMessageAsync(
-                $"{section} est prévu dans l'architecture Proxmox Desktop. " +
-                "Les opérations seront ajoutées avec les endpoints API correspondants.");
+            "Nodes" => "nodes",
+            "Storage" => "storage",
+            "Network" => "cluster/ha/resources",
+            "Backups" => "cluster/backup",
+            "Tasks and logs" => "cluster/tasks",
+            "Users and permissions" => "access/users",
+            _ => string.Empty
+        };
+
+        if (path.Length == 0) return;
+        try
+        {
+            var rows = await connection.Api.GetResourceListAsync(path);
+            var panel = new StackPanel { Spacing = 8, MinWidth = 620 };
+            panel.Children.Add(new TextBlock
+            {
+                Text = $"{rows.Count} élément(s) · API: /api2/json/{path}",
+                Opacity = 0.7
+            });
+
+            foreach (var row in rows.Take(100))
+            {
+                var values = row
+                    .Where(pair => pair.Value.ValueKind is not System.Text.Json.JsonValueKind.Null)
+                    .Select(pair => $"{pair.Key}: {pair.Value}")
+                    .ToArray();
+                panel.Children.Add(new TextBlock
+                {
+                    Text = string.Join("  •  ", values),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            }
+
+            var dialog = new ContentDialog
+            {
+                Title = section,
+                Content = new ScrollViewer { Content = panel, MaxHeight = 600 },
+                CloseButtonText = "Fermer",
+                XamlRoot = Root.XamlRoot
+            };
+            await dialog.ShowAsync();
+        }
+        catch (Exception ex)
+        {
+            await ShowMessageAsync($"Impossible de charger {section}: {ex.Message}");
         }
     }
 
