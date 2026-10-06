@@ -61,6 +61,7 @@ jobs:
             }
           }
           "tag=$tag"          >> $env:GITHUB_OUTPUT
+          "version=$($tag.TrimStart('v'))" >> $env:GITHUB_OUTPUT
           "proceed=$proceed"  >> $env:GITHUB_OUTPUT
           Write-Host "Resolved tag=$tag proceed=$proceed"
 
@@ -102,7 +103,7 @@ jobs:
           name: "Proxmox Desktop ${{ steps.resolve.outputs.tag }}"
           body: |
             ## 📦 Installation
-            **Installer:** download `ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-setup-win-x64.exe` and follow the wizard.
+            **Installer:** download `ProxmoxDesktop-${{ steps.resolve.outputs.version }}-setup-win-x64.exe` and follow the wizard.
 
             > The installer is self-contained — no .NET installation required.
 
@@ -110,7 +111,7 @@ jobs:
             - Windows 10 (build 17763+) or Windows 11
             - [WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) *(pre-installed on Windows 11)*
             - [Virt-Viewer + UsbDk](https://www.spice-space.org/download.html) *(SPICE only)*
-          files: output/ProxmoxDesktop-${{ steps.resolve.outputs.tag }}-setup-win-x64.exe
+          files: output/ProxmoxDesktop-${{ steps.resolve.outputs.version }}-setup-win-x64.exe
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(steps.resolve.outputs.tag, '-beta') || contains(steps.resolve.outputs.tag, '-rc') }}
