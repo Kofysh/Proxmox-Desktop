@@ -83,6 +83,13 @@ public partial class LoginViewModel : ObservableObject
                 throw new InvalidOperationException($"Proxmox VE {version} was detected, but no authentication realms were returned.");
         }
         catch (UriFormatException) { ErrorMessage = "Enter a valid server hostname or IP address."; _api = null; }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            // A reverse proxy can protect the public version endpoint with HTTP auth.
+            // Keep the API client alive and let the Proxmox login endpoint validate credentials.
+            Realms.Add(new RealmData { Realm = "pam", Type = "pam", Comment = "Default Proxmox realm" });
+            SelectedRealm = Realms[0];
+        }
         catch (HttpRequestException ex) { ErrorMessage = $"This address is not reachable as Proxmox VE: {ex.Message}"; _api = null; }
         catch (FormatException) { ErrorMessage = "Port must be a number between 1 and 65535."; _api = null; }
         catch (Exception ex)
