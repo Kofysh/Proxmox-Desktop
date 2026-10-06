@@ -82,13 +82,22 @@ public sealed class ApiClient : IApiClient
 
         TicketResponse? result;
         HttpStatusCode  status;
-        try   { (result, status) = await PostTicketWithStatusAsync(form, ct); }
+        string?         serverHeader;
+        try   { (result, status, serverHeader) = await PostTicketWithStatusAsync(form, ct); }
         catch (Exception ex) { return LoginResult.Failure($"Cannot reach server: {ex.Message}"); }
 
         if (result is null)
+        {
+            if (status == HttpStatusCode.Unauthorized &&
+                string.Equals(serverHeader, "cloudflare", StringComparison.OrdinalIgnoreCase))
+                return LoginResult.Failure(
+                    "The Cloudflare proxy rejected the API request (HTTP 401). " +
+                    "Allow /api2/json/* in Cloudflare Access/WAF or connect directly to Proxmox.");
+
             return LoginResult.Failure(status == HttpStatusCode.Unauthorized
                 ? "Login rejected — check username, password and realm, and enter the TOTP code if 2FA is enabled."
                 : $"Login rejected by the server (HTTP {(int)status}).");
+        }
 
         if (result.Ticket?.Contains("PVE:!tfa!") == true)
             return string.IsNullOrWhiteSpace(otp)
@@ -291,14 +300,15 @@ public sealed class ApiClient : IApiClient
         Dictionary<string, string> form, CancellationToken ct)
         => (await PostTicketWithStatusAsync(form, ct)).Data;
 
-    private async Task<(TicketResponse? Data, HttpStatusCode Status)> PostTicketWithStatusAsync(
+    private async Task<(TicketResponse? Data, HttpStatusCode Status, string? Server)> PostTicketWithStatusAsync(
         Dictionary<string, string> form, CancellationToken ct)
     {
         var resp = await _http.PostAsync(
             "access/ticket", new FormUrlEncodedContent(form), ct);
         var body = await resp.Content.ReadAsStringAsync(ct);
-        if (!resp.IsSuccessStatusCode) return (null, resp.StatusCode);
-        return (JsonSerializer.Deserialize<PveResponse<TicketResponse>>(body, _json)?.Data, resp.StatusCode);
+        var server = resp.Headers.Server.FirstOrDefault()?.Product?.Name;
+        if (!resp.IsSuccessStatusCode) return (null, resp.StatusCode, server);
+        return (JsonSerializer.Deserialize<PveResponse<TicketResponse>>(body, _json)?.Data, resp.StatusCode, server);
     }
 
     private async Task<List<MachineData>> FetchMachinesAsync(
