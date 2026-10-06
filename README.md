@@ -2,66 +2,114 @@
 
 <div align="center">
 
-**Client Windows natif et moderne pour Proxmox VE**
+**A polished native Windows client for Proxmox VE**
 
 [![Build](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/build.yml/badge.svg)](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/build.yml)
 [![Release](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/release.yml/badge.svg)](https://github.com/Kofysh/Proxmox-Desktop/actions/workflows/release.yml)
-[![.NET](https://img.shields.io/badge/.NET-10%20LTS-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/10.0)
-[![WinUI](https://img.shields.io/badge/WinUI-3-0078D4?style=flat-square&logo=windows)](https://learn.microsoft.com/windows/apps/winui/)
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/download/dotnet/10.0)
+[![Windows](https://img.shields.io/badge/Windows-10%2B-0078D4?style=flat-square&logo=windows)](https://www.microsoft.com/windows)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 </div>
 
-## Présentation
+## Overview
 
-**Proxmox Desktop** est une application Windows native pour administrer les machines virtuelles et conteneurs LXC d'un ou plusieurs clusters Proxmox VE.
+**Proxmox Desktop** is a native WPF application for managing Proxmox VE infrastructure from a clean, focused Windows interface. It brings the most common administration tasks together in one dashboard for virtual machines, LXC containers, nodes, storage, tasks and consoles.
 
-L'interface est construite avec **WinUI 3** et **Windows App SDK 2.5.1**. Le projet utilise **.NET 10 LTS**, le pattern MVVM et un client HTTP asynchrone avec renouvellement automatique des tickets Proxmox.
+The project is built with **.NET 10**, **WPF**, **WPF-UI**, **MVVM**, **WebView2** and the Proxmox VE REST API. The interface is designed for fast daily administration while keeping authentication and local secret storage aligned with Windows capabilities.
 
-La navigation prépare les principaux domaines de Proxmox VE : vue d'ensemble, machines virtuelles, conteneurs LXC, nœuds, stockage, réseau, sauvegardes, tâches, journaux et gestion des utilisateurs. Les écrans d'administration seront ajoutés progressivement avec leurs endpoints API dédiés.
+## Highlights
 
-## Fonctionnalités
+- Modern dark Windows interface inspired by professional desktop utilities.
+- Native Proxmox VE authentication with password, TOTP and API tokens.
+- Server endpoint validation before credentials are submitted.
+- VM and LXC overview with status, node, VMID and resource information.
+- Quick power actions: start, stop, restart, suspend, resume and reset.
+- Integrated NoVNC and xterm.js web consoles through WebView2.
+- SPICE console support through Virt-Viewer.
+- Activity logging and visible connection diagnostics.
+- Dedicated application User-Agent and standard API request headers.
+- Windows DPAPI protection for locally stored secrets.
+- Self-contained Windows installer; no separate .NET installation is required.
 
-- Dashboard WinUI 3 avec cartes VM/LXC et vue liste.
-- Recherche par nom, VMID, serveur ou nœud.
-- Filtres par serveur, nœud et tags Proxmox.
-- Statistiques globales : total, actifs, arrêtés, VMs et conteneurs.
-- Tri par nom, VMID, CPU, mémoire, statut ou uptime.
-- Connexion multi-serveurs.
-- Actions de contrôle : démarrer, arrêter, redémarrer, suspendre, reprendre, hiberner et réinitialiser.
-- Console intégrée NoVNC et xTermJS via WebView2.
-- Console SPICE via Virt-Viewer.
-- Authentification par mot de passe + TOTP ou par API Token.
-- Notifications Windows lors des changements d'état.
-- Journal d'activité et messages d'erreur visibles.
-- Thème clair/sombre mémorisé.
-- Publication autonome pour une utilisation installée ou portable.
+## Screens and navigation
 
-## Configuration requise
+The application is organized around the main Proxmox administration areas:
 
-| Composant | Version |
-|---|---|
-| Windows | Windows 10 build 17763+ ou Windows 11 |
-| .NET SDK pour compiler | 10.0.100 ou version 10.0.x plus récente |
-| Windows App SDK | 2.5.1, inclus dans l'application publiée |
-| WebView2 Runtime | Version stable récente, généralement déjà installé sur Windows 11 |
-| Microsoft Visual C++ Redistributable x64 | Requis par Windows App SDK ; inclus dans l'installateur |
-| Virt-Viewer + UsbDk | Requis uniquement pour SPICE |
+| Area | Purpose |
+| --- | --- |
+| Overview | Infrastructure summary and recent activity |
+| Virtual Machines | VM status, details and power actions |
+| Containers | LXC status, details and power actions |
+| Nodes | Cluster node information |
+| Storage | Storage overview and availability |
+| Network | Network-related infrastructure views |
+| Backups | Backup-related administration |
+| Tasks | Recent and active Proxmox tasks |
+| Users | User and access administration |
 
-Les versions publiées sont autonomes : l'utilisateur n'a pas besoin d'installer le runtime .NET ou Windows App SDK. L'installateur et l'exécutable portable installent automatiquement le runtime Microsoft Visual C++ x64 si nécessaire. La version portable est distribuée sous la forme d'un exécutable auto-extractible unique : lancez-le directement, sans décompresser de fichiers. Elle utilise un dossier temporaire supprimé à la fermeture. WebView2 reste nécessaire pour les consoles web. En cas d'échec, le diagnostic est écrit dans `%LOCALAPPDATA%\ProxmoxDesktop\startup.log`.
+## Download and installation
 
-## Installation
+Download the latest installer from the [Releases page](../../releases):
 
-Depuis la page [Releases](../../releases), choisissez :
+```text
+ProxmoxDesktop-<version>-setup-win-x64.exe
+```
 
-- **Installateur** `ProxmoxDesktop-*-setup-win-x64.exe` : installation par utilisateur, sans droits administrateur, avec raccourcis Windows.
-- **Portable** `ProxmoxDesktop-*-portable-win-x64.zip` : extraction dans n'importe quel dossier ou sur une clé USB, puis lancement de `ProxmoxDesktop.exe`.
+The installer is self-contained and installs the Windows application for the current user. Current releases distribute the installer only; no portable package is included.
 
-La configuration est enregistrée dans `%AppData%\ProxmoxDesktop\config.json`. Les secrets d'API sont protégés avec Windows DPAPI.
+### Requirements
 
-## Compiler depuis les sources
+- Windows 10 version 1809 (build 17763) or Windows 11.
+- 64-bit Windows.
+- Network access to the Proxmox VE API.
+- WebView2 Runtime for integrated web consoles.
+- Virt-Viewer and UsbDk for SPICE consoles.
 
-Depuis PowerShell à la racine du dépôt :
+## Authentication
+
+### Username and password
+
+Enter the Proxmox server address, port, realm, username and password. The default Proxmox API port is `8006`. If TOTP is enabled, the application requests the one-time code during login.
+
+### API token
+
+Use the Proxmox token identifier format:
+
+```text
+user@realm!tokenid
+```
+
+The token secret is never stored as plain text. Locally persisted secrets are protected with Windows DPAPI.
+
+### Reverse proxies
+
+The application connects directly to the Proxmox API using native HTTP requests. A reverse proxy must forward the Proxmox API routes, including:
+
+```text
+/api2/json/version
+/api2/json/access/domains
+/api2/json/access/ticket
+/api2/json/*
+```
+
+If a proxy requires an external browser session or an interactive access gateway, native Proxmox credentials alone cannot bypass that policy. For the most reliable setup, expose the Proxmox API through a route that allows native API authentication.
+
+## Minimal permissions
+
+A dedicated Proxmox account commonly needs the following permissions:
+
+| Permission | Purpose |
+| --- | --- |
+| `VM.Audit` | List and inspect virtual machines and containers |
+| `VM.Console` | Open VM and container consoles |
+| `VM.PowerMgmt` | Perform power operations |
+
+Add node, storage, task or user permissions according to the administration features required by your deployment.
+
+## Build from source
+
+From the repository root in PowerShell:
 
 ```powershell
 dotnet restore "Proxmox Desktop\ProxmoxDesktop.csproj"
@@ -70,91 +118,74 @@ dotnet build "Proxmox Desktop\ProxmoxDesktop.csproj" `
   -p:Platform=x64
 ```
 
-Publier une version autonome portable :
+To publish a self-contained Windows build:
 
 ```powershell
 dotnet publish "Proxmox Desktop\ProxmoxDesktop.csproj" `
   --configuration Release `
   --runtime win-x64 `
   --self-contained true `
-  -p:WindowsAppSDKSelfContained=true `
   -p:PublishReadyToRun=true `
-  -o output\portable
+  -o output\publish
 ```
 
-## Authentification Proxmox
-
-### Mot de passe
-
-Renseignez le serveur, le port `8006`, le realm, l'utilisateur et le mot de passe. Si le TOTP est activé, le code est demandé après la première tentative.
-
-### API Token
-
-Utilisez un identifiant au format :
-
-```text
-user@realm!tokenid
-```
-
-Le secret du token n'est jamais enregistré en clair.
-
-## Permissions minimales
-
-Pour un compte dédié, les permissions suivantes sont généralement suffisantes :
-
-| Permission | Utilisation |
-|---|---|
-| `VM.Audit` | Lister et afficher les machines |
-| `VM.Console` | Ouvrir les consoles |
-| `VM.PowerMgmt` | Contrôler l'alimentation |
-
-## Architecture
+## Project structure
 
 ```text
 Proxmox Desktop/
-├── Api/                  Client Proxmox, réponses et modèles
-├── Config/               Configuration JSON et chiffrement DPAPI
-├── Console/              Lancement de Virt-Viewer/SPICE
-├── Converters/           Convertisseurs WinUI
-├── Services/             Notifications et journal d'activité
-├── ViewModels/           Logique MVVM
-├── Views/                Fenêtres WinUI 3
+├── Api/                  HTTP client, API models and responses
+├── Config/               JSON configuration and DPAPI protection
+├── Converters/           WPF value converters
+├── Services/             Notifications and activity logging
+├── ViewModels/           MVVM presentation logic
+├── Views/                WPF windows and application screens
 └── ProxmoxDesktop.csproj
 ```
 
-Technologies principales :
+### Main technologies
 
-- WinUI 3 et Windows App SDK 2.5.1
-- .NET 10 LTS
+- .NET 10
+- WPF
+- WPF-UI 2.1.0
 - CommunityToolkit.Mvvm 8.4.2
-- WebView2 1.0.4258.31
+- Microsoft.Web.WebView2 1.0.4258.31
 - System.Text.Json
 - Windows DPAPI
 
 ## CI/CD
 
-- Chaque push sur `master` et chaque pull request lance une compilation Release.
-- Le workflow `release.yml` génère un ZIP portable et un installateur Inno Setup.
-- Une nouvelle release peut être créée par tag `vX.Y.Z`, changement de version ou déclenchement manuel.
-- Les tags contenant `-beta` ou `-rc` produisent une préversion.
+- Every push to `master` and every pull request can run the validation build.
+- Versioned tags in the form `vX.Y.Z` trigger the release workflow.
+- The release workflow publishes a self-contained x64 Windows installer.
+- Release notes are generated in English with installation, requirements, security and changelog sections.
+- The release workflow uses .NET 10 and Node.js 24-compatible GitHub Actions.
 
 ## Roadmap
 
-- [x] Dashboard VM/LXC WinUI 3
-- [x] API Token et TOTP
-- [x] Multi-serveurs
-- [x] Recherche, filtres et tri
-- [x] Contrôle d'alimentation
-- [x] Consoles NoVNC, xTermJS et SPICE
-- [x] Notifications Windows
-- [x] Mode installé et portable
-- [ ] Actions groupées sur plusieurs machines
-- [ ] Graphiques historiques par VM
+- [x] Modern WPF dashboard
+- [x] Password, TOTP and API token authentication
+- [x] Server endpoint validation
+- [x] VM and LXC overview
+- [x] Search, filtering and sorting foundations
+- [x] Power management actions
+- [x] NoVNC, xterm.js and SPICE console support
+- [x] Windows installer
+- [ ] Bulk actions across multiple machines
+- [ ] Historical resource charts
+- [ ] Expanded storage, network and user administration
 
-## Contribution
+## Contributing
 
-Les contributions et rapports de bugs sont les bienvenus. Ouvrez une [issue](../../issues), créez une branche dédiée, puis soumettez une pull request vers `master`.
+Bug reports, feature requests and pull requests are welcome. Please open an [issue](../../issues) before proposing a large change, then create a focused branch and submit a pull request to `master`.
 
-## Licence
+Use clear English commit messages in the following style:
 
-Ce projet est distribué sous licence [MIT](LICENSE).
+```text
+Add native API request headers
+Fix login endpoint validation
+Improve release documentation
+```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

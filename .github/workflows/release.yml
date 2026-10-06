@@ -107,43 +107,44 @@ jobs:
           $notes = @"
           # Proxmox Desktop $version
 
-          Une application Windows moderne pour administrer votre infrastructure Proxmox VE depuis une interface claire, rapide et centralisée.
+          A polished native Windows application for managing Proxmox VE from a clear, fast and centralized interface.
 
-          ## Points forts
+          ## Highlights
 
-          - Connexion native à Proxmox VE par identifiants ou token API.
-          - Tableau de bord sombre inspiré des interfaces Windows modernes.
-          - Vue centralisée des nœuds, machines virtuelles, conteneurs, stockages et tâches.
-          - Actions rapides sur les VM et conteneurs : démarrer, arrêter et ouvrir la console.
-          - Client autonome x64 prêt à installer, sans installation séparée de .NET.
-          - Vérification de l’adresse et de la compatibilité de l’endpoint Proxmox avant connexion.
+          - Native Proxmox VE authentication with credentials or API tokens.
+          - Modern dark dashboard inspired by professional Windows utilities.
+          - Centralized views for nodes, virtual machines, containers, storage and tasks.
+          - Quick VM and container actions: start, stop and open the console.
+          - Self-contained x64 installer with no separate .NET installation required.
+          - Proxmox endpoint validation before credentials are submitted.
+          - Dedicated application User-Agent and standard API request headers.
 
           ## Installation
 
-          1. Téléchargez **ProxmoxDesktop-$version-setup-win-x64.exe**.
-          2. Lancez l’installeur puis suivez l’assistant.
-          3. Démarrez Proxmox Desktop depuis le menu Démarrer.
+          1. Download **ProxmoxDesktop-$version-setup-win-x64.exe**.
+          2. Launch the installer and follow the setup wizard.
+          3. Start Proxmox Desktop from the Windows Start menu.
 
-          L’installeur configure automatiquement l’application sur Windows. Aucune version portable n’est distribuée dans cette release.
+          The installer configures the application for Windows. This release does not include a portable package.
 
-          ## Configuration requise
+          ## Requirements
 
-          - Windows 10 version 1809 (build 17763) ou Windows 11, en 64 bits.
-          - Connexion réseau vers l’API Proxmox VE.
-          - WebView2 Runtime pour les consoles intégrées.
-          - Virt-Viewer et UsbDk pour l’utilisation des consoles SPICE.
+          - Windows 10 version 1809 (build 17763) or Windows 11, 64-bit.
+          - Network access to the Proxmox VE API.
+          - WebView2 Runtime for integrated web consoles.
+          - Virt-Viewer and UsbDk for SPICE consoles.
 
-          ## Sécurité
+          ## Security
 
-          Les identifiants sont transmis uniquement à l’API Proxmox configurée par l’utilisateur. Les secrets sauvegardés localement sont protégés par le chiffrement Windows DPAPI.
+          Credentials are sent only to the Proxmox API configured by the user. Locally stored secrets are protected with Windows DPAPI.
 
-          ## Fichier disponible
+          ## Available file
 
-          | Fichier | Description |
+          | File | Description |
           | --- | --- |
-          | `ProxmoxDesktop-$version-setup-win-x64.exe` | Installeur Windows self-contained x64 |
+          | `ProxmoxDesktop-$version-setup-win-x64.exe` | Self-contained x64 Windows installer |
 
-          **Changelog complet :** https://github.com/${{ github.repository }}/compare/v${{ steps.resolve.outputs.version }}^...${{ steps.resolve.outputs.tag }}
+          **Full changelog:** https://github.com/${{ github.repository }}/compare/v${{ steps.resolve.outputs.version }}^...${{ steps.resolve.outputs.tag }}
           "@
           $notesFile = Join-Path $env:RUNNER_TEMP 'release-notes.md'
           Set-Content -LiteralPath $notesFile -Value $notes -Encoding utf8
