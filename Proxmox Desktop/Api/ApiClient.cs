@@ -17,6 +17,8 @@ public sealed class ApiClient : IApiClient
 
     private const string Sentinel403 = "__403__";
     private const int    RetryCount  = 2;
+    private const string ClientUserAgent =
+        "ProxmoxDesktop/2.4.3 (Windows; WPF; .NET 10; win-x64)";
 
     private readonly HttpClient         _http;
     private DataTicket?         _ticket;
@@ -34,7 +36,16 @@ public sealed class ApiClient : IApiClient
             BaseAddress = new Uri($"https://{info.Host}:{info.Port}/api2/json/"),
             Timeout     = TimeSpan.FromSeconds(20)
         };
-        _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        _http.DefaultRequestHeaders.UserAgent.Add(
+            ProductInfoHeaderValue.Parse(ClientUserAgent));
+        _http.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+        _http.DefaultRequestHeaders.AcceptLanguage.Add(
+            new StringWithQualityHeaderValue("fr-FR"));
+        _http.DefaultRequestHeaders.AcceptLanguage.Add(
+            new StringWithQualityHeaderValue("en-US", 0.8));
+        _http.DefaultRequestHeaders.CacheControl =
+            new CacheControlHeaderValue { NoCache = true };
     }
 
     // Kept for backward compat
