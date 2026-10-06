@@ -103,21 +103,51 @@ jobs:
         run: |
           $tag = "${{ steps.resolve.outputs.tag }}"
           $asset = "output/ProxmoxDesktop-${{ steps.resolve.outputs.version }}-setup-win-x64.exe"
-          $notes = @'
+          $version = "${{ steps.resolve.outputs.version }}"
+          $notes = @"
+          # Proxmox Desktop $version
+
+          Une application Windows moderne pour administrer votre infrastructure Proxmox VE depuis une interface claire, rapide et centralisée.
+
+          ## Points forts
+
+          - Connexion native à Proxmox VE par identifiants ou token API.
+          - Tableau de bord sombre inspiré des interfaces Windows modernes.
+          - Vue centralisée des nœuds, machines virtuelles, conteneurs, stockages et tâches.
+          - Actions rapides sur les VM et conteneurs : démarrer, arrêter et ouvrir la console.
+          - Client autonome x64 prêt à installer, sans installation séparée de .NET.
+          - Vérification de l’adresse et de la compatibilité de l’endpoint Proxmox avant connexion.
+
           ## Installation
-          **Installer:** download `ProxmoxDesktop-${{ steps.resolve.outputs.version }}-setup-win-x64.exe` and follow the wizard.
 
-          > The installer is self-contained — no .NET installation required.
+          1. Téléchargez **ProxmoxDesktop-$version-setup-win-x64.exe**.
+          2. Lancez l’installeur puis suivez l’assistant.
+          3. Démarrez Proxmox Desktop depuis le menu Démarrer.
 
-          ## Requirements
-          - Windows 10 (build 17763+) or Windows 11
-          - WebView2 Runtime
-          - Virt-Viewer + UsbDk for SPICE
-          '@
+          L’installeur configure automatiquement l’application sur Windows. Aucune version portable n’est distribuée dans cette release.
+
+          ## Configuration requise
+
+          - Windows 10 version 1809 (build 17763) ou Windows 11, en 64 bits.
+          - Connexion réseau vers l’API Proxmox VE.
+          - WebView2 Runtime pour les consoles intégrées.
+          - Virt-Viewer et UsbDk pour l’utilisation des consoles SPICE.
+
+          ## Sécurité
+
+          Les identifiants sont transmis uniquement à l’API Proxmox configurée par l’utilisateur. Les secrets sauvegardés localement sont protégés par le chiffrement Windows DPAPI.
+
+          ## Fichier disponible
+
+          | Fichier | Description |
+          | --- | --- |
+          | `ProxmoxDesktop-$version-setup-win-x64.exe` | Installeur Windows self-contained x64 |
+
+          **Changelog complet :** https://github.com/${{ github.repository }}/compare/v${{ steps.resolve.outputs.version }}^...${{ steps.resolve.outputs.tag }}
+          "@
           $notesFile = Join-Path $env:RUNNER_TEMP 'release-notes.md'
           Set-Content -LiteralPath $notesFile -Value $notes -Encoding utf8
           gh release create $tag $asset `
             --repo "${{ github.repository }}" `
             --title "Proxmox Desktop $tag" `
-            --notes-file $notesFile `
-            --generate-notes
+            --notes-file $notesFile
