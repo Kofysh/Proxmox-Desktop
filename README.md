@@ -10,8 +10,6 @@
 [![WinUI](https://img.shields.io/badge/WinUI-3-0078D4?style=flat-square&logo=windows)](https://learn.microsoft.com/windows/apps/winui/)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-![Dashboard](Screenshots/Capture-2.PNG)
-
 </div>
 
 ## Présentation
