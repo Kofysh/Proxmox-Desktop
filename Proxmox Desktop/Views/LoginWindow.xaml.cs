@@ -31,4 +31,16 @@ public partial class LoginWindow : Window
 
     private void TokenSecretBox_PasswordChanged(object sender, RoutedEventArgs e)
         => ViewModel.TokenSecret = TokenSecretBox.Password;
+
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(ViewModel.Server))
+            await ViewModel.LoadRealmsAsync();
+    }
+
+    private async void Realm_DropDownOpened(object sender, EventArgs e)
+    {
+        if (ViewModel.Realms.Count == 0 && !ViewModel.IsBusy)
+            await ViewModel.LoadRealmsAsync();
+    }
 }

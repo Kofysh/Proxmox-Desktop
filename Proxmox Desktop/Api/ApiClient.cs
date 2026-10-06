@@ -49,7 +49,23 @@ public sealed class ApiClient : IApiClient
     public async Task<List<RealmData>> GetRealmsAsync(CancellationToken ct = default)
     {
         var body = await GetRawAsync("access/domains", ct);
-        return JsonSerializer.Deserialize<PveListResponse<RealmData>>(body, _json)?.Data ?? [];
+        var response = JsonSerializer.Deserialize<PveListResponse<RealmData>>(body, _json);
+        if (response?.Data is null)
+            throw new InvalidOperationException("The server did not return a valid Proxmox API response.");
+        return response.Data;
+    }
+
+    /// <summary>
+    /// Verifies that the endpoint is a Proxmox VE API before asking for credentials.
+    /// The version endpoint is public and does not require authentication.
+    /// </summary>
+    public async Task<string> VerifyProxmoxAsync(CancellationToken ct = default)
+    {
+        var body = await GetRawAsync("version", ct);
+        var response = JsonSerializer.Deserialize<PveResponse<ProxmoxVersion>>(body, _json);
+        if (string.IsNullOrWhiteSpace(response?.Data?.Version))
+            throw new InvalidOperationException("The endpoint responded, but it is not a Proxmox VE API.");
+        return response.Data.Version;
     }
 
     public async Task<LoginResult> LoginAsync(
@@ -376,5 +392,11 @@ public sealed class ApiClient : IApiClient
     {
         [System.Text.Json.Serialization.JsonPropertyName("ticket")]
         public string? Ticket { get; init; }
+    }
+
+    private sealed class ProxmoxVersion
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("version")]
+        public string? Version { get; init; }
     }
 }

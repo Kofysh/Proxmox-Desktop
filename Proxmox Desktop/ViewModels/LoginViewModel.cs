@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Net.Http;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ProxmoxDesktop.Api;
@@ -73,13 +74,20 @@ public partial class LoginViewModel : ObservableObject
         IsBusy = true; ErrorMessage = null; Realms.Clear();
         try
         {
-            _api = new ApiClient(Server.Trim(), Port.Trim(), SkipSsl);
+            _api?.Dispose();
+            _api = new ApiClient(NormalizeServer(Server), NormalizePort(Port), SkipSsl);
+            var version = await _api.VerifyProxmoxAsync(ct);
             foreach (var r in await _api.GetRealmsAsync(ct)) Realms.Add(r);
             SelectedRealm = Realms.FirstOrDefault();
+            if (Realms.Count == 0)
+                throw new InvalidOperationException($"Proxmox VE {version} was detected, but no authentication realms were returned.");
         }
+        catch (UriFormatException) { ErrorMessage = "Enter a valid server hostname or IP address."; _api = null; }
+        catch (HttpRequestException ex) { ErrorMessage = $"This address is not reachable as Proxmox VE: {ex.Message}"; _api = null; }
+        catch (FormatException) { ErrorMessage = "Port must be a number between 1 and 65535."; _api = null; }
         catch (Exception ex)
         {
-            ErrorMessage = $"Cannot reach server: {ex.Message}";
+            ErrorMessage = $"This address is not a Proxmox VE server: {ex.Message}";
             _api = null;
         }
         finally { IsBusy = false; }
@@ -88,10 +96,12 @@ public partial class LoginViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanLogin))]
     public async Task LoginAsync(CancellationToken ct = default)
     {
-        _api ??= new ApiClient(Server.Trim(), Port.Trim(), SkipSsl);
         IsBusy = true; ErrorMessage = null;
         try
         {
+            // Always validate the current endpoint before sending credentials.
+            await LoadRealmsAsync(ct);
+            if (_api is null) return;
             var result = UseApiToken
                 ? await _api.LoginWithTokenAsync(TokenId.Trim(), TokenSecret.Trim(), ct)
                 : await _api.LoginAsync(
@@ -142,5 +152,20 @@ public partial class LoginViewModel : ObservableObject
         if (UseApiToken) c.TokenId  = TokenId;
         else             c.Username = Username;
         _config.Save();
+    }
+
+    private static string NormalizeServer(string value)
+    {
+        var input = value.Trim();
+        if (!input.Contains("://", StringComparison.Ordinal))
+            return input;
+        return new Uri(input, UriKind.Absolute).Host;
+    }
+
+    private static string NormalizePort(string value)
+    {
+        if (!int.TryParse(value.Trim(), out var parsed) || parsed is < 1 or > 65535)
+            throw new FormatException();
+        return parsed.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 }

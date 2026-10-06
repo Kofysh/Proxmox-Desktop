@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Proxmox Desktop" Width="560" Height="760"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded">
     <Grid Background="#121820">
         <ScrollViewer>
             <StackPanel Margin="42">
@@ -13,7 +14,7 @@
                 <TextBlock Text="Port" Foreground="#B8C4D4"/>
                 <TextBox Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,12"/>
                 <TextBlock Text="Realm" Foreground="#B8C4D4"/>
-                <ComboBox ItemsSource="{Binding Realms}" SelectedItem="{Binding SelectedRealm}" DisplayMemberPath="Realm" Margin="0,4,0,12"/>
+                <ComboBox ItemsSource="{Binding Realms}" SelectedItem="{Binding SelectedRealm}" DisplayMemberPath="Realm" DropDownOpened="Realm_DropDownOpened" Margin="0,4,0,12"/>
                 <TextBlock Text="Username" Foreground="#B8C4D4"/>
                 <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,12"/>
                 <TextBlock Text="Password" Foreground="#B8C4D4"/>
