@@ -46,6 +46,7 @@ public sealed class ApiClient : IApiClient
             new StringWithQualityHeaderValue("en-US", 0.8));
         _http.DefaultRequestHeaders.CacheControl =
             new CacheControlHeaderValue { NoCache = true };
+
     }
 
     // Kept for backward compat
